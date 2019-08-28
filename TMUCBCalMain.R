@@ -174,8 +174,50 @@ TMUCBCalProcess <- function(
                                    "pppp_sales", "p_ytd_sales", "quota", "budget", "market_share_m", "sales", "ytd_sales")),
                                  c("market_share_m"), c("market_share"))
     
-    print(head(cal_developed_data))
-    #print(head(cal_dist_data))
+    # 未开发
+    cal_undev_data <- filter(cal_data, cal_data$status == "未开发")
+    
+    cal_undev_data <- mutate(cal_undev_data,
+                             budget_m = cal_undev_data$budget + cal_undev_data$p_budget,
+                             market_share = lit(0.0),
+                             sales = lit(0.0),
+                             develop_fee = cal_develop_fee(cal_undev_data)
+                            )
+    cal_undev_data <- mutate(cal_undev_data,
+                             status_m = cal_update_status(cal_undev_data),
+                             ytd_sales = cal_undev_data$p_ytd_sales + cal_undev_data$sales
+                            )
+    
+    cal_undev_data <- ColRename(select(cal_undev_data,
+                             c("city", "hospital", "hospital_level", "representative", "product", "product_area", "potential", 
+                               "patient", "status_m", "rep_num", "hosp_num", "initial_budget", "p_quota", "p_budget", "p_sales", 
+                               "pppp_sales", "p_ytd_sales", "quota", "budget_m", "market_share", "sales", "ytd_sales")),
+                             c("status_m", "budget_m"), c("status", "budget"))
+    
+    cal_data <- rbind(cal_developed_data, cal_undev_data)
+    cal_data <- filter(cal_data, isNotNull(cal_data$status))
+    cal_data <- mutate(cal_data,
+                       account = ifelse(cal_data$status == "正在开发", 1, 0)
+                       )
+    
+    cal_calc_data <- head(ColRename(select(cal_data, 
+                                      sum(cal_data$account), 
+                                      sum(cal_data$budget), 
+                                      sum(cal_data$p_sales), 
+                                      sum(cal_data$sales)),
+                               c("sum(account)", "sum(budget)", "sum(p_sales)", "sum(sales)"),
+                               c("new_account", "total_budget", "sumps", "sums")), 1)
+    
+    cal_data <- mutate(cal_data,
+                       new_account = lit(cal_calc_data$new_account),
+                       total_budget = lit(cal_calc_data$total_budget),
+                       sumps = lit(cal_calc_data$sumps),
+                       sums = lit(cal_calc_data$sums)
+                       )
+    
+    # write.parquet(cal_data, "hdfs://192.168.100.137:9000//test/UCBTest/inputParquet/TMInputParquet0820/output/abcde-parquet")
+    
+    print(head(cal_data))
 }
 
 TMUCBCalProcess(

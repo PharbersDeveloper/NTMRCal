@@ -115,3 +115,14 @@ cal_offer_attractiveness_adj <- function(df) {
 cal_market_share_m <- function(df) {
     ifelse(df$representative == 0, 0, df$market_share / 100)
 }
+
+# undev
+cal_develop_fee <- function(df) {
+    ifelse(df$hospital_level == "三级", 12000,
+           ifelse(df$hospital_level == "二级", 8000,
+                  3000))
+}
+
+cal_update_status <- function(df) {
+    ifelse(df$budget_m >= df$develop_fee, "正在开发", "未开发")
+}
