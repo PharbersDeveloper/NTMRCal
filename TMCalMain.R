@@ -136,8 +136,10 @@ TMCalProcess <- function(
                        "product_knowledge", "behavior_efficiency", "general_ability", "target", "target_coverage", 
                        "high_target", "middle_target", "low_target", "share", "sales")
    
-    write.df(cal_data, "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/output/abcde")
-    write.parquet(cal_data, "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/output/abcde-parquet")
+    # write.df(cal_data, "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/output/abcde")
+    # write.parquet(cal_data, "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/output/abcde-parquet")
+    
+    print(head(cal_data, 10))
     
     # BPCalSession::CloseSparkSession()
 }

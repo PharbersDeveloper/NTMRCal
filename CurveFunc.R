@@ -11,8 +11,8 @@ curve_func <- function(curve_data, input) {
     right <- tmp[which.min(abs(input - tmp$x)), ]
     
     y <- ifelse(left$x <= right$x,
-                (1 - (input - left$x) / (right$x - left$x)) * left$y + (1 - (right$x - input) / (right$x - left$x)) * right$y, 
-                (1 - (input - right$x) / (left$x - right$x)) * right$y + (1 - (left$x - input) / (left$x - right$x)) * left$y)
+                (1.0 - (input - left$x) / (right$x - left$x)) * left$y + (1.0 - (right$x - input) / (right$x - left$x)) * right$y, 
+                (1.0 - (input - right$x) / (left$x - right$x)) * right$y + (1.0 - (left$x - input) / (left$x - right$x)) * left$y)
     
     return(y)
 }
