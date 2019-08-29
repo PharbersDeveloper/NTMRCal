@@ -1,10 +1,13 @@
-Sys.setenv(SPARK_HOME="/Users/alfredyang/Desktop/spark/spark-2.3.0-bin-hadoop2.7")
-Sys.setenv(YARN_CONF_DIR="/Users/alfredyang/Desktop/hadoop-3.0.3/etc/hadoop/")
+# just for client mode
+# don't need it when cluster mode
+# Sys.setenv(SPARK_HOME="/Users/alfredyang/Desktop/spark/spark-2.3.0-bin-hadoop2.7")
+# Sys.setenv(YARN_CONF_DIR="/Users/alfredyang/Desktop/hadoop-3.0.3/etc/hadoop/")
 
-library(magrittr)
-library(SparkR, lib.loc = c(file.path(Sys.getenv("SPARK_HOME"), "R", "lib")))
-library(BPCalSession)
-library(BPRDataLoading)
+#library(magrittr)
+#library(SparkR, lib.loc = c(file.path(Sys.getenv("SPARK_HOME"), "R", "lib")))
+library(SparkR)
+# library(BPCalSession)
+# library(BPRDataLoading)
 library(uuid)
 
 source("AddCols.R")
@@ -14,7 +17,6 @@ source("ColMax.R")
 source("ColRename.R")
 source("ColSum.R")
 source("CurveFunc.R")
-source("TMDataCbind.R")
 source("UCBDataBinding.R")
 source("TMCalCurveSkeleton2.R")
 source("UCBCalFuncs.R")
@@ -41,11 +43,12 @@ TMUCBCalProcess <- function(
     standard_time_path) {
 
     jobid <- uuid::UUIDgenerate()
-    ss <- BPCalSession::GetOrCreateSparkSession("UCBCal", "client")
-    cal_data <- BPRDataLoading::LoadDataFromParquent(cal_data_path)
-    weightages <- BPRDataLoading::LoadDataFromParquent(weight_path)
+    # ss <- BPCalSession::GetOrCreateSparkSession("UCBCal", "cluster")
+    ss <- sparkR.session(appName = "UCB-Submit")
+    cal_data <- read.parquet(cal_data_path)
+    weightages <- read.parquet(weight_path)
     
-    curves <- CastCol2Double(BPRDataLoading::LoadDataFromParquent(curves_path), c("x", "y"))
+    curves <- CastCol2Double(read.parquet(curves_path), c("x", "y"))
     curves <- collect(curves)
     
     cal_data <- UCBDataBinding(cal_data, weightages)
@@ -252,7 +255,7 @@ TMUCBCalProcess <- function(
                                   c("product_area_m", "potential")),
                                "product_area_m", "potential")
     
-    competitor <- BPRDataLoading::LoadDataFromParquent(competitor_path)
+    competitor <- read.parquet(competitor_path)
     competitor <- CastCol2Double(competitor, c("market_share_c"))
    
     cal_product_area <- join(cal_product_area, competitor, cal_product_area$product_area_m == competitor$product_area, "inner")
