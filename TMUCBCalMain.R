@@ -58,6 +58,8 @@ TMUCBCalProcess <- function(
     cal_data <- mutate(cal_data, 
                        budget_prop = cal_data$budget / cal_data$total_budget
                        )
+    persist(cal_data, "MEMORY_ONLY")
+    up01 <- cal_data
     
     cal_dist_data <-  ColRename(agg(groupBy(cal_data, "product", "representative", "city"), 
                                    potential_m="sum", 
@@ -97,6 +99,8 @@ TMUCBCalProcess <- function(
     cal_data <- mutate(cal_data,
                        budget_factor = cal_data$budget_prop / cal_data$value_contri
                        )
+    persist(cal_data, "MEMORY_ONLY")
+    up02 <- cal_data
     
     cal_developed_data <- filter(cal_data, cal_data$status == "已开发" | cal_data$status == "正在开发")
     cal_developed_data <- mutate(cal_developed_data,
@@ -193,12 +197,15 @@ TMUCBCalProcess <- function(
                                "patient", "status_m", "rep_num", "hosp_num", "initial_budget", "p_quota", "p_budget", "p_sales", 
                                "pppp_sales", "p_ytd_sales", "quota", "budget_m", "market_share", "sales", "ytd_sales")),
                              c("status_m", "budget_m"), c("status", "budget"))
-    
+   
     cal_data <- rbind(cal_developed_data, cal_undev_data)
     cal_data <- filter(cal_data, isNotNull(cal_data$status))
     cal_data <- mutate(cal_data,
                        account = ifelse(cal_data$status == "正在开发", 1, 0)
                        )
+    
+    persist(cal_data, "MEMORY_ONLY")
+    up03 <- cal_data
     
     cal_calc_data <- head(ColRename(select(cal_data, 
                                       sum(cal_data$account), 
@@ -218,6 +225,9 @@ TMUCBCalProcess <- function(
     # write.parquet(cal_data, "hdfs://192.168.100.137:9000//test/UCBTest/inputParquet/TMInputParquet0820/output/abcde-parquet")
     
     print(head(cal_data))
+    unpersist(up01, blocking = FALSE)
+    unpersist(up02, blocking = FALSE)
+    unpersist(up03, blocking = FALSE)
 }
 
 TMUCBCalProcess(
