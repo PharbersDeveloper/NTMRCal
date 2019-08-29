@@ -44,7 +44,10 @@ TMCalProcess <- function(
     cal_data <- BPRDataLoading::LoadDataFromParquent(cal_data_path)
     weightages <- BPRDataLoading::LoadDataFromParquent(weight_path)
     manager <- BPRDataLoading::LoadDataFromParquent(manage_path)
-
+    competitor <- BPRDataLoading::LoadDataFromParquent(competitor_path)
+    standard_time <- BPRDataLoading::LoadDataFromParquent(standard_time_path)
+    level_data <- BPRDataLoading::LoadDataFromParquent(level_data_path)
+    
     curves <- CastCol2Double(BPRDataLoading::LoadDataFromParquent(curves_path), c("x", "y"))
     curves <- collect(curves)
    
@@ -144,7 +147,7 @@ TMCalProcess <- function(
     # BPCalSession::CloseSparkSession()
     
     ## competitor ----
-    competitor_data <- CastCol2Double(BPRDataLoading::LoadDataFromParquent(competitor_path), c("p_share")) 
+    competitor_data <- CastCol2Double(competitor, c("p_share")) 
     
     competitor_data <- AddCols(competitor_data, head(distinct(select(cal_data, "total_potential")), 1), "total_potential")
     
@@ -231,12 +234,54 @@ TMCalProcess <- function(
     manage_time <- distinct(select(cal_data_for_assessment, "representative", "field_work", "one_on_one_coaching", "employee_kpi_and_compliance_check", 
                                    "admin_work", "kol_management", "business_strategy_planning", "team_meeting", "manager_time"))
     
+    manage_time <- ColRename(agg(groupBy(manage_time, "employee_kpi_and_compliance_check", "admin_work", "kol_management", "business_strategy_planning", "team_meeting", "manager_time"),
+                                 field_work = "sum",
+                                 one_on_one_coaching = "sum"),
+                             c("sum(field_work)", "sum(one_on_one_coaching)"),
+                             c("field_work", "one_on_one_coaching"))
     
     
+    standard_time_data <- CastCol2Double(standard_time, c("employee_kpi_and_compliance_check_std", 
+                                                         "admin_work_std", "kol_management_std", 
+                                                         "business_strategy_planning_std", 
+                                                         "team_meeting_std", "field_work_std", 
+                                                         "one_on_one_coaching_std"))
+    manage_time <- AddCols(manage_time, head(standard_time_data, 1), columns(standard_time_data))
     
+    manage_time <- mutate(selectExpr(manage_time, "(abs(employee_kpi_and_compliance_check - employee_kpi_and_compliance_check_std) / manager_time 
+                                     + abs(admin_work - admin_work_std) / manager_time 
+                                     + abs(kol_management - kol_management_std) / manager_time 
+                                     + abs(business_strategy_planning - business_strategy_planning_std) / manager_time 
+                                     + abs(team_meeting - team_meeting_std) / manager_time 
+                                     + abs(field_work - field_work_std) / manager_time 
+                                     + abs(one_on_one_coaching - one_on_one_coaching_std) / manager_time) / 7 as score"), 
+                          index_m = lit("manage_time"))
     
+    print(head(manage_time, 10))
+    ## manage_team ----
+    manage_team <- distinct(select(cal_data_for_assessment, "representative", "general_ability", "p_product_knowledge", "p_sales_skills", "p_territory_management_ability", "p_work_motivation", "p_behavior_efficiency"))
     
+    manage_team <- withColumn(manage_team, "p_general_ability", (manage_team$p_territory_management_ability * 0.2 + manage_team$p_sales_skills * 0.25 + manage_team$p_product_knowledge * 0.25
+                                                                 + manage_team$p_behavior_efficiency * 0.15 + manage_team$p_work_motivation * 0.15) * 10)
     
+    manage_team <- withColumn(manage_team, "space_delta", - manage_team$p_general_ability + 100)
+    
+    manage_team <- withColumn(manage_team, "growth_delta", manage_team$general_ability - manage_team$p_general_ability)
+    
+    manage_team <- mutate(selectExpr(manage_team, "0.2 - mean(growth_delta) / mean(space_delta) as score"), index_m = lit("manage_team"))
+    print(head(manage_team, 10))
+    
+    assessments <- rbind(assessment_region_division, assessment_target_assigns, assessment_resource_assigns, manage_time, manage_team)
+    
+    level_data <- CastCol2Double(level_data, c("level1", "level2"))
+    particular_assessment <- join(assessments, level_data, assessments$index_m == level_data$index, "left")
+    print(head(particular_assessment, 10))
+    #particular_assessment <- withColumn(particular_assessment, "level", ifslse(particular_assessment$score < particular_assessment$level1, 1, ifslse(particular_assessment$score > particular_assessment$level2, 3, 2)))
+    
+    particular_assessment <- mutate(particular_assessment, 
+                                    level = ifelse(particular_assessment$score < particular_assessment$level1, 1, 
+                                                   ifelse(particular_assessment$score > particular_assessment$level2, 3, 2)))
+    print(head(particular_assessment, 10))
 }
 
 TMCalProcess(
@@ -244,5 +289,7 @@ TMCalProcess(
     weight_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/weightages",
     manage_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/manager",
     curves_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/curves-n",
-    competitor_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/competitor"
+    competitor_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/competitor",
+    standard_time_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/standard_time",
+    level_data_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/level_data"
 )
