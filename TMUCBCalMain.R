@@ -226,13 +226,94 @@ TMUCBCalProcess <- function(
     # write.parquet(cal_data, "hdfs://192.168.100.137:9000//test/UCBTest/inputParquet/TMInputParquet0820/output/abcde-parquet")
     
     print(head(cal_data))
+   
+    persist(cal_data, "MEMORY_ONLY")
+    up_result <- cal_data
+    
+    ## competitor hospital report
+    cal_hospital_report <- ColRename(agg(groupBy(cal_data, "product"), 
+                                         potential="sum"),
+                                     c("sum(potential)"), 
+                                     c("potential"))
+    
+    cal_hospital_report <- mutate(cal_hospital_report, 
+                                  potential = cal_hospital_report$potential * (rand() / 100 + 0.01)
+                                  )
+    cal_hospital_report <- mutate(cal_hospital_report, 
+                                  sales = cal_hospital_report$potential * (rand() / 100 + 0.015)
+                                  )
+    
+    # write.parquet(cal_data, "hdfs://192.168.100.137:9000//test/UCBTest/inputParquet/TMInputParquet0820/output/hospital-parquet")
+    print(head(cal_hospital_report))
+    
+    ## competitor product area
+    cal_product_area <- select(ColRename(agg(groupBy(cal_data, "product_area", "product"), 
+                                      potential="sum"),
+                                  c("product_area", "sum(potential)"), 
+                                  c("product_area_m", "potential")),
+                               "product_area_m", "potential")
+    
+    competitor <- BPRDataLoading::LoadDataFromParquent(competitor_path)
+    competitor <- CastCol2Double(competitor, c("market_share_c"))
+   
+    cal_product_area <- join(cal_product_area, competitor, cal_product_area$product_area_m == competitor$product_area, "inner")
+
+    cal_product_area <- mutate(cal_product_area, 
+                               market_share = cal_product_area$market_share_c * (rand() * 0.2 + 0.9)
+                               )
+    cal_product_area <- mutate(cal_product_area, 
+                               sales = cal_product_area$potential * cal_product_area$market_share
+                               )
+    print(head(cal_product_area))
+    
+    # write.parquet(cal_data, "hdfs://192.168.100.137:9000//test/UCBTest/inputParquet/TMInputParquet0820/output/competitor")
+    
+    # final summary report 单周期
+    cal_result_summary <- select(cal_data, "representative", "status", "p_sales", "pppp_sales", "sales", "quota", "budget", "account")
+    cal_result_summary <- ColRename(agg(groupBy(cal_result_summary, "representative"), 
+                                        p_sales ="sum",
+                                        pppp_sales ="sum",
+                                        sales ="sum",
+                                        quota ="sum",
+                                        account ="sum",
+                                        budget ="sum"),
+                                    c("sum(p_sales)", "sum(pppp_sales)", "sum(sales)", "sum(quota)", "sum(account)", "sum(budget)"),
+                                    c("p_sales", "pppp_sales", "sales", "quota", "new_account", "budget"))
+    
+    cal_result_summary <- ColRename(agg(cal_result_summary, 
+                                        sum(cal_result_summary$p_sales),
+                                        sum(cal_result_summary$pppp_sales),
+                                        sum(cal_result_summary$sales),
+                                        sum(cal_result_summary$quota),
+                                        sum(cal_result_summary$new_account),
+                                        sum(cal_result_summary$budget),
+                                        count(cal_result_summary$representative)),
+                                    c("sum(p_sales)", "sum(pppp_sales)", "sum(sales)", "sum(quota)", "sum(new_account)", "sum(budget)", "count(representative)"),
+                                    c("p_sales", "pppp_sales", "sales", "quota", "new_account", "budget", "rep_num"))
+   
+    cal_result_summary <- mutate(cal_result_summary,
+                                 quota_achv = cal_result_summary$sales / cal_result_summary$quota,
+                                 sales_force_productivity = cal_result_summary$sales / cal_result_summary$rep_num,
+                                 return_on_investment = cal_result_summary$sales / cal_result_summary$budget,
+                                 growth_month_on_month = cal_result_summary$sales / cal_result_summary$p_sales - 1.0,
+                                 growth_year_on_year = cal_result_summary$sales / cal_result_summary$pppp_sales - 1.0
+                                 )
+    
+    cal_result_summary <- select(cal_result_summary,
+                                 c("sales", "quota", "budget", "new_account", "quota_achv", 
+                                   "growth_month_on_month", "growth_year_on_year", 
+                                   "sales_force_productivity", "return_on_investment"))
+    
+    print(head(cal_result_summary))
     unpersist(up01, blocking = FALSE)
     unpersist(up02, blocking = FALSE)
     unpersist(up03, blocking = FALSE)
+    unpersist(up_result, blocking = FALSE)
 }
 
 TMUCBCalProcess(
     cal_data_path = "hdfs://192.168.100.137:9000//test/UCBTest/inputParquet/TMInputParquet0820/cal_data",
     weight_path = "hdfs://192.168.100.137:9000//test/UCBTest/inputParquet/TMInputParquet0820/weightages",
-    curves_path = "hdfs://192.168.100.137:9000//test/UCBTest/inputParquet/TMInputParquet0820/curves-n"
+    curves_path = "hdfs://192.168.100.137:9000//test/UCBTest/inputParquet/TMInputParquet0820/curves-n",
+    competitor_path = "hdfs://192.168.100.137:9000//test/UCBTest/inputParquet/TMInputParquet0820/competitor"
 )
