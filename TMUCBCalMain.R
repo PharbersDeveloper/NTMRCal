@@ -1,10 +1,14 @@
-Sys.setenv(SPARK_HOME="/Users/alfredyang/Desktop/spark/spark-2.3.0-bin-hadoop2.7")
-Sys.setenv(YARN_CONF_DIR="/Users/alfredyang/Desktop/hadoop-3.0.3/etc/hadoop/")
+# just for client mode
+# don't need it when cluster mode
+# Sys.setenv(SPARK_HOME="/Users/alfredyang/Desktop/spark/spark-2.3.0-bin-hadoop2.7")
+# Sys.setenv(YARN_CONF_DIR="/Users/alfredyang/Desktop/hadoop-3.0.3/etc/hadoop/")
 
-library(magrittr)
-library(SparkR, lib.loc = c(file.path(Sys.getenv("SPARK_HOME"), "R", "lib")))
-library(BPCalSession)
-library(BPRDataLoading)
+#library(magrittr)
+#library(SparkR, lib.loc = c(file.path(Sys.getenv("SPARK_HOME"), "R", "lib")))
+library(SparkR)
+# library(BPCalSession)
+# library(BPRDataLoading)
+library(uuid)
 
 source("AddCols.R")
 source("CastCol2Double.R")
@@ -13,7 +17,6 @@ source("ColMax.R")
 source("ColRename.R")
 source("ColSum.R")
 source("CurveFunc.R")
-source("TMDataCbind.R")
 source("UCBDataBinding.R")
 source("TMCalCurveSkeleton2.R")
 source("UCBCalFuncs.R")
@@ -39,11 +42,13 @@ TMUCBCalProcess <- function(
     level_data_path,
     standard_time_path) {
 
-    ss <- BPCalSession::GetOrCreateSparkSession("UCBCal", "client")
-    cal_data <- BPRDataLoading::LoadDataFromParquent(cal_data_path)
-    weightages <- BPRDataLoading::LoadDataFromParquent(weight_path)
+    jobid <- uuid::UUIDgenerate()
+    # ss <- BPCalSession::GetOrCreateSparkSession("UCBCal", "cluster")
+    ss <- sparkR.session(appName = "UCB-Submit")
+    cal_data <- read.parquet(cal_data_path)
+    weightages <- read.parquet(weight_path)
     
-    curves <- CastCol2Double(BPRDataLoading::LoadDataFromParquent(curves_path), c("x", "y"))
+    curves <- CastCol2Double(read.parquet(curves_path), c("x", "y"))
     curves <- collect(curves)
     
     cal_data <- UCBDataBinding(cal_data, weightages)
@@ -223,16 +228,94 @@ TMUCBCalProcess <- function(
                        sums = lit(cal_calc_data$sums)
                        )
     
-    # write.parquet(cal_data, "hdfs://192.168.100.137:9000//test/UCBTest/inputParquet/TMInputParquet0820/output/abcde-parquet")
+    write.parquet(cal_data, paste("hdfs://192.168.100.137:9000//test/UCBTest/inputParquet/TMInputParquet0820/output", jobid, "cal_report", sep = "/"))
     
-    print(head(cal_data))
+    persist(cal_data, "MEMORY_ONLY")
+    up_result <- cal_data
+    
+    ## competitor hospital report
+    cal_hospital_report <- ColRename(agg(groupBy(cal_data, "product"), 
+                                         potential="sum"),
+                                     c("sum(potential)"), 
+                                     c("potential"))
+    
+    cal_hospital_report <- mutate(cal_hospital_report, 
+                                  potential = cal_hospital_report$potential * (rand() / 100 + 0.01)
+                                  )
+    cal_hospital_report <- mutate(cal_hospital_report, 
+                                  sales = cal_hospital_report$potential * (rand() / 100 + 0.015)
+                                  )
+    
+    write.parquet(cal_hospital_report, paste("hdfs://192.168.100.137:9000//test/UCBTest/inputParquet/TMInputParquet0820/output", jobid, "hospital_report", sep = "/"))
+    
+    ## competitor product area
+    cal_product_area <- select(ColRename(agg(groupBy(cal_data, "product_area", "product"), 
+                                      potential="sum"),
+                                  c("product_area", "sum(potential)"), 
+                                  c("product_area_m", "potential")),
+                               "product_area_m", "potential")
+    
+    competitor <- read.parquet(competitor_path)
+    competitor <- CastCol2Double(competitor, c("market_share_c"))
+   
+    cal_product_area <- join(cal_product_area, competitor, cal_product_area$product_area_m == competitor$product_area, "inner")
+
+    cal_product_area <- mutate(cal_product_area, 
+                               market_share = cal_product_area$market_share_c * (rand() * 0.2 + 0.9)
+                               )
+    cal_product_area <- mutate(cal_product_area, 
+                               sales = cal_product_area$potential * cal_product_area$market_share
+                               )
+    
+    write.parquet(cal_product_area, paste("hdfs://192.168.100.137:9000//test/UCBTest/inputParquet/TMInputParquet0820/output", jobid, "competitor", sep = "/"))
+    
+    # final summary report 单周期
+    cal_result_summary <- select(cal_data, "representative", "status", "p_sales", "pppp_sales", "sales", "quota", "budget", "account")
+    cal_result_summary <- ColRename(agg(groupBy(cal_result_summary, "representative"), 
+                                        p_sales ="sum",
+                                        pppp_sales ="sum",
+                                        sales ="sum",
+                                        quota ="sum",
+                                        account ="sum",
+                                        budget ="sum"),
+                                    c("sum(p_sales)", "sum(pppp_sales)", "sum(sales)", "sum(quota)", "sum(account)", "sum(budget)"),
+                                    c("p_sales", "pppp_sales", "sales", "quota", "new_account", "budget"))
+    
+    cal_result_summary <- ColRename(agg(cal_result_summary, 
+                                        sum(cal_result_summary$p_sales),
+                                        sum(cal_result_summary$pppp_sales),
+                                        sum(cal_result_summary$sales),
+                                        sum(cal_result_summary$quota),
+                                        sum(cal_result_summary$new_account),
+                                        sum(cal_result_summary$budget),
+                                        count(cal_result_summary$representative)),
+                                    c("sum(p_sales)", "sum(pppp_sales)", "sum(sales)", "sum(quota)", "sum(new_account)", "sum(budget)", "count(representative)"),
+                                    c("p_sales", "pppp_sales", "sales", "quota", "new_account", "budget", "rep_num"))
+   
+    cal_result_summary <- mutate(cal_result_summary,
+                                 quota_achv = cal_result_summary$sales / cal_result_summary$quota,
+                                 sales_force_productivity = cal_result_summary$sales / cal_result_summary$rep_num,
+                                 return_on_investment = cal_result_summary$sales / cal_result_summary$budget,
+                                 growth_month_on_month = cal_result_summary$sales / cal_result_summary$p_sales - 1.0,
+                                 growth_year_on_year = cal_result_summary$sales / cal_result_summary$pppp_sales - 1.0
+                                 )
+    
+    cal_result_summary <- select(cal_result_summary,
+                                 c("sales", "quota", "budget", "new_account", "quota_achv", 
+                                   "growth_month_on_month", "growth_year_on_year", 
+                                   "sales_force_productivity", "return_on_investment"))
+    
+    write.parquet(cal_result_summary, paste("hdfs://192.168.100.137:9000//test/UCBTest/inputParquet/TMInputParquet0820/output", jobid, "summary", sep = "/"))
+    
     unpersist(up01, blocking = FALSE)
     unpersist(up02, blocking = FALSE)
     unpersist(up03, blocking = FALSE)
+    unpersist(up_result, blocking = FALSE)
 }
 
 TMUCBCalProcess(
     cal_data_path = "hdfs://192.168.100.137:9000//test/UCBTest/inputParquet/TMInputParquet0820/cal_data",
     weight_path = "hdfs://192.168.100.137:9000//test/UCBTest/inputParquet/TMInputParquet0820/weightages",
-    curves_path = "hdfs://192.168.100.137:9000//test/UCBTest/inputParquet/TMInputParquet0820/curves-n"
+    curves_path = "hdfs://192.168.100.137:9000//test/UCBTest/inputParquet/TMInputParquet0820/curves-n",
+    competitor_path = "hdfs://192.168.100.137:9000//test/UCBTest/inputParquet/TMInputParquet0820/competitor"
 )
