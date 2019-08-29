@@ -1,6 +1,7 @@
 TMCalCurveSkeleton2 <- function(df, curves, arr, cast_func = TMCalValue2Numeric) {
     narr <- array(arr, dim = c(4, length(arr)/4))
-    c_curves <- collect(curves)
+    # c_curves <- collect(curves)
+    c_curves <- curves
     
     # shema
     schemadf <- df

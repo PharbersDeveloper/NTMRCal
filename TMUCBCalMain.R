@@ -44,6 +44,7 @@ TMUCBCalProcess <- function(
     weightages <- BPRDataLoading::LoadDataFromParquent(weight_path)
     
     curves <- CastCol2Double(BPRDataLoading::LoadDataFromParquent(curves_path), c("x", "y"))
+    curves <- collect(curves)
     
     cal_data <- UCBDataBinding(cal_data, weightages)
     

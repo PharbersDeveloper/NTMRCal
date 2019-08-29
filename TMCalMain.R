@@ -45,7 +45,8 @@ TMCalProcess <- function(
     weightages <- BPRDataLoading::LoadDataFromParquent(weight_path)
     manager <- BPRDataLoading::LoadDataFromParquent(manage_path)
 
-    curves <- CastCol2Double(BPRDataLoading::LoadDataFromParquent(curves_path), c("x", "y"))
+    curves <- CastCol2Double(BPRDataLoading::LoadDataFromParquent(curves_path), c("x", "y"))a
+    curves <- collect(curves)
    
     cal_data <- TMDataCbind(cal_data, weightages, manager)
     
