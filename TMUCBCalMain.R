@@ -313,9 +313,10 @@ TMUCBCalProcess <- function(
     unpersist(up_result, blocking = FALSE)
 }
 
+cmd_args = commandArgs(T)
 TMUCBCalProcess(
-    cal_data_path = "hdfs://192.168.100.137:9000//test/UCBTest/inputParquet/TMInputParquet0820/cal_data",
-    weight_path = "hdfs://192.168.100.137:9000//test/UCBTest/inputParquet/TMInputParquet0820/weightages",
-    curves_path = "hdfs://192.168.100.137:9000//test/UCBTest/inputParquet/TMInputParquet0820/curves-n",
-    competitor_path = "hdfs://192.168.100.137:9000//test/UCBTest/inputParquet/TMInputParquet0820/competitor"
+    cal_data_path = cmd_args[1], # "hdfs://192.168.100.137:9000//test/UCBTest/inputParquet/TMInputParquet0820/cal_data",
+    weight_path = cmd_args[2], # "hdfs://192.168.100.137:9000//test/UCBTest/inputParquet/TMInputParquet0820/weightages",
+    curves_path = cmd_args[3], # "hdfs://192.168.100.137:9000//test/UCBTest/inputParquet/TMInputParquet0820/curves-n",
+    competitor_path = cmd_args[4] # "hdfs://192.168.100.137:9000//test/UCBTest/inputParquet/TMInputParquet0820/competitor"
 )
