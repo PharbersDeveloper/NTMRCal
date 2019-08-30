@@ -1,11 +1,13 @@
 
-Sys.setenv(SPARK_HOME="/Users/cui/workFile/calc/spark-2.3.0-bin-hadoop2.7")
-Sys.setenv(YARN_CONF_DIR="/Users/cui/workFile/calc/hadoop-3.0.3/etc/hadoop/")
+#Sys.setenv(SPARK_HOME="/Users/cui/workFile/calc/spark-2.3.0-bin-hadoop2.7")
+#Sys.setenv(YARN_CONF_DIR="/Users/cui/workFile/calc/hadoop-3.0.3/etc/hadoop/")
 
-library(magrittr)
-library(SparkR, lib.loc = c(file.path(Sys.getenv("SPARK_HOME"), "R", "lib")))
-library(BPCalSession)
-library(BPRDataLoading)
+#library(magrittr)
+#library(SparkR, lib.loc = c(file.path(Sys.getenv("SPARK_HOME"), "R", "lib")))
+library(SparkR)
+#library(BPCalSession)
+#library(BPRDataLoading)
+library(uuid)
 
 source("AddCols.R")
 source("CastCol2Double.R")
@@ -40,6 +42,7 @@ TMCalProcess <- function(
     level_data_path,
     standard_time_path) {
   
+    jobid <- uuid::UUIDgenerate()
     ss <- BPCalSession::GetOrCreateSparkSession("TMCal", "client")
     cal_data <- BPRDataLoading::LoadDataFromParquent(cal_data_path)
     weightages <- BPRDataLoading::LoadDataFromParquent(weight_path)
@@ -145,7 +148,7 @@ TMCalProcess <- function(
    
     # write.df(cal_data, "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/output/abcde")
     # write.parquet(cal_data, "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/output/abcde-parquet")
-    print(head(cal_data, 10))
+    write.parquet(cal_data, paste("hdfs://192.168.100.137:9000//test/TMTest/output", jobid, "TMResult", sep = "/"))
     # BPCalSession::CloseSparkSession()
     
     ## competitor ----
@@ -162,7 +165,7 @@ TMCalProcess <- function(
     
     competitor_data <- select(competitor_data, "product", "sales", "share", "sales_growth")
     
-    print(head(competitor_data, 10))
+    write.parquet(competitor_data, paste("hdfs://192.168.100.137:9000//test/TMTest/output", jobid, "TMCompetitor", sep = "/"))
     
     ## assessment_region_division ----
     cal_data_agg_for_assessment <- ColRename(agg(groupBy(cal_data_for_assessment, "representative", "general_ability", "total_potential", "total_p_sales"),
@@ -186,7 +189,7 @@ TMCalProcess <- function(
 
     assessment_region_division <- mutate(selectExpr(assessment_region_division, "mean(score_s) as score"), index_m = lit("region_division"))
     
-    print(head(assessment_region_division, 10))
+    
     
     ## assessment_target_assigns ----
     assessment_target_assigns <- select(cal_data_for_assessment, "potential", "p_sales", "quota", "sales", "total_potential", "total_p_sales", "total_quota")
@@ -210,7 +213,7 @@ TMCalProcess <- function(
     
     assessment_target_assigns <- mutate(selectExpr(assessment_target_assigns, "mean(ptt_ps_score) * 0.7 + mean(q_s_score) * 0.3 as score"), index_m = lit("target_assigns"))
     
-    print(head(assessment_target_assigns, 10))
+    
     
     ## assessment_resource_assigns ----
     assessment_resource_assigns <- select(cal_data_for_assessment, "potential", "p_sales", "budget", "call_time", "representative_time", "meeting_attendance", 
@@ -230,7 +233,7 @@ TMCalProcess <- function(
 
     assessment_resource_assigns <- mutate(selectExpr(assessment_resource_assigns, "mean(budget_score) * 0.45 +mean(time_score) * 0.25 + mean(place_score) * 0.3 as score"), index_m = lit("resource_assigns"))
     
-    print(head(assessment_resource_assigns, 10))
+    
 
     ## manage_time ----
     manage_time <- distinct(select(cal_data_for_assessment, "representative", "field_work", "one_on_one_coaching", "employee_kpi_and_compliance_check", 
@@ -259,7 +262,7 @@ TMCalProcess <- function(
                                      + abs(one_on_one_coaching - one_on_one_coaching_std) / manager_time) / 7 as score"), 
                           index_m = lit("manage_time"))
     
-    print(head(manage_time, 10))
+    
     ## manage_team ----
     manage_team <- distinct(select(cal_data_for_assessment, "representative", "general_ability", "p_product_knowledge", "p_sales_skills", "p_territory_management_ability", "p_work_motivation", "p_behavior_efficiency"))
     
@@ -271,7 +274,7 @@ TMCalProcess <- function(
     manage_team <- withColumn(manage_team, "growth_delta", manage_team$general_ability - manage_team$p_general_ability)
     
     manage_team <- mutate(selectExpr(manage_team, "0.2 - mean(growth_delta) / mean(space_delta) as score"), index_m = lit("manage_team"))
-    print(head(manage_team, 10))
+    
     
     assessments <- rbind(assessment_region_division, assessment_target_assigns, assessment_resource_assigns, manage_time, manage_team)
     
@@ -280,7 +283,7 @@ TMCalProcess <- function(
     
     particular_assessment <- mutate(particular_assessment, 
                                     level = cal_assessment_level(particular_assessment))
-    print(head(particular_assessment, 10))
+    
     
     particular_assessment <- select(particular_assessment, "index", "code", "level")
     
@@ -289,9 +292,12 @@ TMCalProcess <- function(
     general_assessment <- mutate(selectExpr(particular_assessment, "cast(mean(level) as int) as level"), 
                                  index = lit("general_performance"),
                                  code = lit(5))
-    print(head(general_assessment, 10))
+    
     assessment <- unionByName(particular_assessment, general_assessment)
-    print(head(assessment, 10))
+    
+    write.parquet(assessment, paste("hdfs://192.168.100.137:9000//test/TMTest/output", jobid, "Assessment", sep = "/"))
+    
+    unpersist(cal_data_for_assessment, blocking = FALSE)
 }
 
 TMCalProcess(
