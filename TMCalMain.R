@@ -108,6 +108,8 @@ TMCalProcess <- function(
     cal_data_for_assessment <- mutate(cal_data, 
                        sales = cal_data$potential / cal_data$share * 4)
     
+    persist(cal_data_for_assessment, "MEMORY_ONLY")
+    
     cal_data <- TMCalResAchv(cal_data_for_assessment)
     
     cal_data <- mutate(cal_data, 
@@ -275,13 +277,21 @@ TMCalProcess <- function(
     
     level_data <- CastCol2Double(level_data, c("level1", "level2"))
     particular_assessment <- join(assessments, level_data, assessments$index_m == level_data$index, "left")
-    print(head(particular_assessment, 10))
-    #particular_assessment <- withColumn(particular_assessment, "level", ifslse(particular_assessment$score < particular_assessment$level1, 1, ifslse(particular_assessment$score > particular_assessment$level2, 3, 2)))
     
     particular_assessment <- mutate(particular_assessment, 
-                                    level = ifelse(particular_assessment$score < particular_assessment$level1, 1, 
-                                                   ifelse(particular_assessment$score > particular_assessment$level2, 3, 2)))
+                                    level = cal_assessment_level(particular_assessment))
     print(head(particular_assessment, 10))
+    
+    particular_assessment <- select(particular_assessment, "index", "code", "level")
+    
+    
+    ## general_assessment ----
+    general_assessment <- mutate(selectExpr(particular_assessment, "cast(mean(level) as int) as level"), 
+                                 index = lit("general_performance"),
+                                 code = lit(5))
+    print(head(general_assessment, 10))
+    assessment <- unionByName(particular_assessment, general_assessment)
+    print(head(assessment, 10))
 }
 
 TMCalProcess(
