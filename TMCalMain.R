@@ -43,15 +43,25 @@ TMCalProcess <- function(
     standard_time_path) {
   
     jobid <- uuid::UUIDgenerate()
-    ss <- BPCalSession::GetOrCreateSparkSession("TMCal", "client")
-    cal_data <- BPRDataLoading::LoadDataFromParquent(cal_data_path)
-    weightages <- BPRDataLoading::LoadDataFromParquent(weight_path)
-    manager <- BPRDataLoading::LoadDataFromParquent(manage_path)
-    competitor <- BPRDataLoading::LoadDataFromParquent(competitor_path)
-    standard_time <- BPRDataLoading::LoadDataFromParquent(standard_time_path)
-    level_data <- BPRDataLoading::LoadDataFromParquent(level_data_path)
+    #ss <- BPCalSession::GetOrCreateSparkSession("TMCal", "client")
     
-    curves <- CastCol2Double(BPRDataLoading::LoadDataFromParquent(curves_path), c("x", "y"))
+    #cal_data <- BPRDataLoading::LoadDataFromParquent(cal_data_path)
+    #weightages <- BPRDataLoading::LoadDataFromParquent(weight_path)
+    #manager <- BPRDataLoading::LoadDataFromParquent(manage_path)
+    #competitor <- BPRDataLoading::LoadDataFromParquent(competitor_path)
+    #standard_time <- BPRDataLoading::LoadDataFromParquent(standard_time_path)
+    #level_data <- BPRDataLoading::LoadDataFromParquent(level_data_path)
+    ss <- sparkR.session(appName = "TM-Submit")
+    cal_data <- read.parquet(cal_data_path)
+    weightages <- read.parquet(weight_path)
+    manager <- read.parquet(manage_path)
+    competitor <- read.parquet(competitor_path)
+    standard_time <- read.parquet(standard_time_path)
+    level_data <- read.parquet(level_data_path)
+    curves <- read.parquet(curves_path)
+    
+    
+    curves <- CastCol2Double(curves, c("x", "y"))
     curves <- collect(curves)
    
     cal_data <- TMDataCbind(cal_data, weightages, manager)
