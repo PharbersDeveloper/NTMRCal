@@ -23,7 +23,7 @@ cal_value_contri <-function(df) {
 }
 
 cal_hospital_quota_base <- function(df) {
-    ifelse(df$status == "已开发", 
+    ifelse(df$status == "已开发",
             df$p_sales * 0.4 / df$sumps + df$potential * 0.6,
             df$potential / df$sumptt)
 }
@@ -34,7 +34,7 @@ cal_quota_prop <- function(df) {
 
 # factor 1
 cal_hospital_product_quota_growth_factor <- function(df) {
-    ifelse(df$status == '已开发', 
+    ifelse(df$status == '已开发',
            - abs((df$quota - df$p_sales)/(df$sumqt - df$sumps) - (df$potential_m - df$p_sales)/(df$sumptt - df$sumps)) + 1,
     0)
 }
@@ -52,7 +52,7 @@ cal_hospital_product_quota_growth_factor_m <- function(df) {
 }
 
 cal_factor_1 <- function(df) {
-    ifelse(df$status == "已开发", 
+    ifelse(df$status == "已开发",
            df$hospital_quota_base_factor_m * df$hospital_quota_base_factor_w +
            df$hospital_product_quota_growth_factor_m * df$hospital_product_quota_growth_factor_w,
            df$hospital_quota_base_factor_m)
@@ -76,7 +76,7 @@ cal_district_hospital_factor <- function(df) {
 }
 
 cal_factor_2 <- function(df) {
-    ifelse(df$status == "已开发", 
+    ifelse(df$status == "已开发",
            # yes
            df$district_potential_factor * df$district_potential_factor_w1 * df$factor2_w +
            df$district_sales_factor * df$district_sales_factor_w * df$factor2_w +
@@ -94,7 +94,7 @@ cal_p_oa_factor <- function(df) {
 }
 
 cal_offer_attractiveness <- function(df) {
-    ifelse(df$oa_factor_base < 0, 
+    ifelse(df$oa_factor_base < 0,
            df$p_offer_attractiveness_m * (df$oa_factor_base + 1),
            df$p_offer_attractiveness_m + (df$max_oa - df$p_offer_attractiveness_m) * df$oa_factor_base)
 }
