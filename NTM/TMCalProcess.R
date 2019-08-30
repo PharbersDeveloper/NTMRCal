@@ -292,12 +292,12 @@ TMCalProcess <- function(
     unpersist(cal_data_for_assessment, blocking = FALSE)
 }
 
-TMCalProcess(
-    cal_data_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/cal_data",
-    weight_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/weightages",
-    manage_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/manager",
-    curves_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/curves-n",
-    competitor_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/competitor",
-    standard_time_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/standard_time",
-    level_data_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/level_data"
-)
+# TMCalProcess(
+#     cal_data_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/cal_data",
+#     weight_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/weightages",
+#     manage_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/manager",
+#     curves_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/curves-n",
+#     competitor_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/competitor",
+#     standard_time_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/standard_time",
+#     level_data_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/level_data"
+# )
