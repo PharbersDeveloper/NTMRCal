@@ -1,15 +1,4 @@
 
-#Sys.setenv(SPARK_HOME="/Users/cui/workFile/calc/spark-2.3.0-bin-hadoop2.7")
-#Sys.setenv(YARN_CONF_DIR="/Users/cui/workFile/calc/hadoop-3.0.3/etc/hadoop/")
-
-#library(magrittr)
-#library(SparkR, lib.loc = c(file.path(Sys.getenv("SPARK_HOME"), "R", "lib")))
-library(SparkR)
-#library(BPCalSession)
-#library(BPRDataLoading)
-library(uuid)
-library(BPRSparkCalCommon)
-
 source("TMDataCbind.R")
 source("TMCalColFuncs.R")
 source("TMCalResAchv.R")
