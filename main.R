@@ -16,8 +16,8 @@ if (cmd_args[1] == "UCB") {
         weight_path = cmd_args[3],
         curves_path = cmd_args[4],
         competitor_path = cmd_args[5]
-    )   
-} else (cmd_args[1] == "NTM") {
+    )
+} else if (cmd_args[1] == "NTM") {
     ss <- sparkR.session(appName = "NTM-Submit")
     TMCalProcess(
         cal_data_path = cmd_args[2],
@@ -27,5 +27,5 @@ if (cmd_args[1] == "UCB") {
         competitor_path = cmd_args[6],
         standard_time_path = cmd_args[7],
         level_data_path = cmd_args[8],
-    )   
+    )
 }
