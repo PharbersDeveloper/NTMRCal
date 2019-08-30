@@ -1,6 +1,9 @@
+library(curl)
+library(jsonlite)
 library(SparkR)
 library(uuid)
 library(BPRSparkCalCommon)
+library(RKafkaProxy)
 
 TMCalCurveSkeleton3 <- BPRSparkCalCommon::TMCalCurveSkeleton3
 curve_func <- BPRSparkCalCommon::curve_func
@@ -28,3 +31,8 @@ if (cmd_args[1] == "UCB") {
         level_data_path = cmd_args[8]
     )
 }
+
+data = jsonlite::toJSON(
+	list(records = list(list(value = list(NTMJob = "Finish")))),auto_unbox = TRUE)
+
+PushMessage(data)
