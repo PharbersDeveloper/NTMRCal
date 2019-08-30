@@ -145,3 +145,8 @@ cal_low_target <- function(df) {
                   ifelse(df$class2 == 3, df$low_target_m + (rand()),
                          df$low_target_m + 1)))
 }
+
+cal_assessment_level <- function(df) {
+    ifelse(df$score < df$level1, 1, 
+           ifelse(df$score > df$level2, 3, 2))
+}
