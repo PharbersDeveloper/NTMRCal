@@ -33,7 +33,7 @@ TMCalProcess <- function(
     #competitor <- BPRDataLoading::LoadDataFromParquent(competitor_path)
     #standard_time <- BPRDataLoading::LoadDataFromParquent(standard_time_path)
     #level_data <- BPRDataLoading::LoadDataFromParquent(level_data_path)
-    ss <- sparkR.session(appName = "TM-Submit")
+    #ss <- sparkR.session(appName = "TM-Submit")
     cal_data <- read.parquet(cal_data_path)
     weightages <- read.parquet(weight_path)
     manager <- read.parquet(manage_path)
