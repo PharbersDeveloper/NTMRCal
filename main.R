@@ -12,7 +12,7 @@ cmd_args = commandArgs(T)
 
 if (cmd_args[1] == "UCB") {
 	JobId <<- cmd_args[6]
-	PushMessage(list("JobId" = JobId, "Status" = "Running", "Message" = ""))
+	PushMessage(list("JobId" = JobId, "Status" = "Running", "Message" = "", "Progress" = "0"))
 
     source("TMUCBCalProcess.R")
     ss <- sparkR.session(appName = "UCB-Submit")
@@ -24,7 +24,7 @@ if (cmd_args[1] == "UCB") {
     )
 } else if (cmd_args[1] == "NTM") {
 	JobId <<- cmd_args[9]
-	PushMessage(list("JobId" = JobId, "Status" = "Running", "Message" = ""))
+	PushMessage(list("JobId" = JobId, "Status" = "Running", "Message" = "", "Progress" = "0"))
     source("TMCalProcess.R")
     ss <- sparkR.session(appName = "NTM-Submit")
     TMCalProcess(
@@ -38,4 +38,4 @@ if (cmd_args[1] == "UCB") {
     )
 }
 
-PushMessage(list("JobId" = JobId, "Status" = "Finish", "Message" = "Finish"))
+PushMessage(list("JobId" = JobId, "Status" = "Finish", "Message" = "", "Progress" = "100"))
