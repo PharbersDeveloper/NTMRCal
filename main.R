@@ -1,4 +1,4 @@
-library(curl)
+library(httr)
 library(jsonlite)
 library(SparkR)
 library(uuid)
@@ -9,7 +9,11 @@ TMCalCurveSkeleton3 <- BPRSparkCalCommon::TMCalCurveSkeleton3
 curve_func <- BPRSparkCalCommon::curve_func
 
 cmd_args = commandArgs(T)
+
 if (cmd_args[1] == "UCB") {
+	JobId <<- cmd_args[6]
+	PushMessage(list("JobId" = JobId, "Status" = "Running", "Message" = ""))
+
     source("TMUCBCalProcess.R")
     ss <- sparkR.session(appName = "UCB-Submit")
     TMUCBCalProcess(
@@ -19,6 +23,8 @@ if (cmd_args[1] == "UCB") {
         competitor_path = cmd_args[5]
     )
 } else if (cmd_args[1] == "NTM") {
+	JobId <<- cmd_args[9]
+	PushMessage(list("JobId" = JobId, "Status" = "Running", "Message" = ""))
     source("TMCalProcess.R")
     ss <- sparkR.session(appName = "NTM-Submit")
     TMCalProcess(
@@ -32,7 +38,4 @@ if (cmd_args[1] == "UCB") {
     )
 }
 
-data = jsonlite::toJSON(
-	list(records = list(list(value = list(NTMJob = "Finish")))),auto_unbox = TRUE)
-
-PushMessage(data)
+PushMessage(list("JobId" = JobId, "Status" = "Finish", "Message" = "Finish"))
