@@ -24,9 +24,10 @@ TMUCBCalProcess <- function(
     curves_path,
     competitor_path,
     level_data_path,
-    standard_time_path) {
+    standard_time_path,
+    jobid) {
 
-    jobid <- uuid::UUIDgenerate()
+    #jobid <- uuid::UUIDgenerate()
     # ss <- sparkR.session(appName = "UCB-Submit")
     cal_data <- read.parquet(cal_data_path)
     weightages <- read.parquet(weight_path)

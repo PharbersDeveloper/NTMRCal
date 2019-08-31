@@ -22,9 +22,10 @@ TMCalProcess <- function(
     curves_path, 
     competitor_path,
     level_data_path,
-    standard_time_path) {
+    standard_time_path,
+    jobid) {
   
-    jobid <- uuid::UUIDgenerate()
+    #jobid <- uuid::UUIDgenerate()
     #ss <- BPCalSession::GetOrCreateSparkSession("TMCal", "client")
     
     #cal_data <- BPRDataLoading::LoadDataFromParquent(cal_data_path)

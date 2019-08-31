@@ -20,7 +20,8 @@ if (cmd_args[1] == "UCB") {
         cal_data_path = cmd_args[2],
         weight_path = cmd_args[3],
         curves_path = cmd_args[4],
-        competitor_path = cmd_args[5]
+        competitor_path = cmd_args[5],
+        jobid = JobId
     )
 } else if (cmd_args[1] == "NTM") {
 	JobId <<- cmd_args[9]
@@ -34,7 +35,8 @@ if (cmd_args[1] == "UCB") {
         curves_path = cmd_args[5],
         competitor_path = cmd_args[6],
         standard_time_path = cmd_args[7],
-        level_data_path = cmd_args[8]
+        level_data_path = cmd_args[8],
+        jobid = JobId
     )
 }
 
