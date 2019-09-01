@@ -196,7 +196,8 @@ TMUCBCalProcess <- function(
     cal_data <- rbind(cal_developed_data, cal_undev_data)
     cal_data <- filter(cal_data, isNotNull(cal_data$status))
     cal_data <- mutate(cal_data,
-                       account = ifelse(cal_data$status == "正在开发", 1, 0)
+                       account = ifelse(cal_data$status == "正在开发", 1, 0),
+                       quota_achv = ifelse(cal_data$quota > 0, cal_data$sales / cal_data$quota, 0)
     )
 
     persist(cal_data, "MEMORY_ONLY")
@@ -216,10 +217,54 @@ TMUCBCalProcess <- function(
                        sumps = lit(cal_calc_data$sumps),
                        sums = lit(cal_calc_data$sums),
                        job_id = lit(jobid),
-                       project_id = lit(proposalid),
+                       project_id = lit(projectId),
                        period_id = lit(periodid)
     )
+    
+    cal_data <- mutate(cal_data,
+                       sales_increase = cal_sale_increase(cal_data))
+    cal_data <- mutate(cal_data,
+                       next_budget = cal_next_budget(cal_data))
 
+    cal_data = distinct(cal_data)
+    
+    cal_data <-  ColRename(agg(groupBy(cal_data, "product", "representative", "hospital"),
+                               job_id = lit(jobid),
+                               project_id = lit(projectId),
+                               period_id = lit(periodid),
+                               city = first(cal_data$city),
+                               hospital_level = first(cal_data$hospital_level),
+                               product_area = first(cal_data$product_area),
+                               potential = max(cal_data$potential),
+                               patient = max(cal_data$patient),
+                               status = first(cal_data$status),
+                               rep_num = max(cal_data$rep_num),
+                               hosp_num = max(cal_data$hosp_num),
+                               initial_budget = max(cal_data$initial_budget),
+                               p_quota = max(cal_data$p_quota),
+                               quota = max(cal_data$quota),
+                               quota_achv = max(cal_data$quota_achv),
+                               p_budget = max(cal_data$p_budget),
+                               budget = max(cal_data$budget),
+                               total_budget = max(cal_data$total_budget),
+                               p_sales = max(cal_data$p_sales),
+                               sales = max(cal_data$sales),
+                               sums = max(cal_data$sums),
+                               pppp_sales = max(cal_data$pppp_sales),
+                               p_ytd_sales = max(cal_data$p_ytd_sales),
+                               sumps = max(cal_data$sumps),
+                               ytd_sales = max(cal_data$ytd_sales),
+                               market_share = max(cal_data$market_share),
+                               account = first(cal_data$account),
+                               new_account = max(cal_data$new_account)
+                               ),
+                                c("max(potential)", "max(patient)", "first(status)", "max(rep_num)", "max(hosp_num)", "max(initial_budget)", 
+                                  "max(p_quota)", "max(p_budget)", "max(p_sales)", "max(pppp_sales)", "max(p_ytd_sales)", "max(quota)", "max(budget)",
+                                  "max(market_share)", "max(sales)", "max(ytd_sales)", "max(new_account)", "max(total_budget", "max(sumps)", "max(sums)"),
+                                c("potential", "patient", "status", "rep_num", "hosp_num", "initial_budget", 
+                                  "p_quota", "p_budget", "p_sales", "pppp_sales", "p_ytd_sales", "quota", "budget",
+                                  "market_share", "sales", "ytd_sales", "new_account", "total_budget", "sumps", "sums"))
+    
     write.parquet(cal_data, paste0(output_dir, "cal_report"))
 
     persist(cal_data, "MEMORY_ONLY")
@@ -258,10 +303,11 @@ TMUCBCalProcess <- function(
     cal_product_area <- mutate(cal_product_area,
                                sales = cal_product_area$potential * cal_product_area$market_share,
                                job_id = lit(jobid),
-                               project_id = lit(proposalId),
+                               project_id = lit(projectId),
                                period_id = lit(periodId)
     )
 
+    cal_product_area = distinct(cal_product_area)
     write.parquet(cal_product_area, paste0(output_dir, "competitor"))
 
     # final summary report 单周期
@@ -294,7 +340,7 @@ TMUCBCalProcess <- function(
                                  growth_month_on_month = cal_result_summary$sales / cal_result_summary$p_sales - 1.0,
                                  growth_year_on_year = cal_result_summary$sales / cal_result_summary$pppp_sales - 1.0,
                                  job_id = lit(jobid),
-                                 project_id = lit(proposalId),
+                                 project_id = lit(projectId),
                                  period_id = lit(periodId)
     )
 
@@ -303,6 +349,7 @@ TMUCBCalProcess <- function(
                                    "growth_month_on_month", "growth_year_on_year",
                                    "sales_force_productivity", "return_on_investment"))
 
+    cal_result_summary = distinct(cal_result_summary)
     write.parquet(cal_result_summary, paste0(output_dir, "summary"))
 
     unpersist(up01, blocking = FALSE)
