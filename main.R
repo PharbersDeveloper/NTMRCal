@@ -8,26 +8,35 @@ library(RKafkaProxy)
 TMCalCurveSkeleton3 <- BPRSparkCalCommon::TMCalCurveSkeleton3
 curve_func <- BPRSparkCalCommon::curve_func
 
+cmd_args = commandArgs(T)
+
+JobID <- cmd_args[2]
+proposalId <- cmd_args[3]
+projectId <- cmd_args[4]
+periodId <- cmd_args[5]
+phase <- cmd_args[6]
+
 ss <- sparkR.session(appName = "UCB-Submit")
 job_scala_proxy <- sparkR.newJObject("com.pharbers.CallJMethod.BPTMProxy.TMProxy")
 tmpId <- sparkR.callJMethod(job_scala_proxy, "BPTMUCBPreCal", 
-                            "5d57ed3cab0bf2192d416afb",
-                            "5d6baed5b83d06c919a7d7b1",
-                            "5d6baed5b83d06c919a7d7b2",
-                            0)
+                            proposalId,
+                            projectId,
+                            periodId,
+                            as.numeric(phase))
 
-cmd_args = commandArgs(T)
 if (cmd_args[1] == "UCB") {
-	JobId <<- cmd_args[6]
     output_dir <- paste0("hdfs://192.168.100.137:9000/tmtest0831/jobs/", tmpId, "/input/")
 	#PushMessage(list("JobId" = JobId, "Status" = "Running", "Message" = "", "Progress" = "0"))
     source("TMUCBCalProcess.R")
     TMUCBCalProcess(
         cal_data_path =  paste0(output_dir, "cal_data"), #cmd_args[2],
-        weight_path = cmd_args[3],
-        curves_path = cmd_args[4],
+        weight_path = cmd_args[7],
+        curves_path = cmd_args[8],
         competitor_path = paste0(output_dir, "cal_comp"), #cmd_args[5]
-        jobid = tmpId
+        jobid = tmpId,
+        proposalid = proposalId,
+        projectid = projectId,
+        periodid = periodId
     )
 } else if (cmd_args[1] == "NTM") {
 	JobId <<- cmd_args[9]
@@ -47,9 +56,9 @@ if (cmd_args[1] == "UCB") {
 
 tmpId <- sparkR.callJMethod(job_scala_proxy, "BPTMUCBPostCal",
                             tmpId,
-                            "5d57ed3cab0bf2192d416afb",
-                            "5d6baed5b83d06c919a7d7b1",
-                            "5d6baed5b83d06c919a7d7b2",
-                            0)
+                            proposalId,
+                            projectId,
+                            periodId,
+                            as.numeric(phase))
 
 #PushMessage(list("JobId" = JobId, "Status" = "Finish", "Message" = "", "Progress" = "100"))

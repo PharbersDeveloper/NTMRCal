@@ -25,12 +25,16 @@ TMUCBCalProcess <- function(
     competitor_path,
     level_data_path,
     standard_time_path,
-    jobid) {
+    jobid,
+    proposalid,
+    projectid,
+    periodid) {
 
     output_dir <- paste0("hdfs://192.168.100.137:9000/tmtest0831/jobs/", jobid, "/output/")
     #jobid <- uuid::UUIDgenerate()
     # ss <- sparkR.session(appName = "UCB-Submit")
     cal_data <- read.parquet(cal_data_path)
+    
     weightages <- read.parquet(weight_path)
 
     curves <- CastCol2Double(read.parquet(curves_path), c("x", "y"))
@@ -51,7 +55,7 @@ TMUCBCalProcess <- function(
     )
     persist(cal_data, "MEMORY_ONLY")
     up01 <- cal_data
-
+    
     cal_dist_data <-  ColRename(agg(groupBy(cal_data, "product", "representative", "city"),
                                     potential_m="sum",
                                     p_sales="sum",
@@ -210,7 +214,10 @@ TMUCBCalProcess <- function(
                        new_account = lit(cal_calc_data$new_account),
                        total_budget = lit(cal_calc_data$total_budget),
                        sumps = lit(cal_calc_data$sumps),
-                       sums = lit(cal_calc_data$sums)
+                       sums = lit(cal_calc_data$sums),
+                       job_id = lit(jobid),
+                       project_id = lit(proposalid),
+                       period_id = lit(periodid)
     )
 
     write.parquet(cal_data, paste0(output_dir, "cal_report"))
@@ -231,7 +238,7 @@ TMUCBCalProcess <- function(
                                   sales = cal_hospital_report$potential * (rand() / 100 + 0.015)
     )
 
-    write.parquet(cal_data, paste0(output_dir, "hospital_report"))
+    write.parquet(cal_hospital_report, paste0(output_dir, "hospital_report"))
 
     ## competitor product area
     cal_product_area <- select(ColRename(agg(groupBy(cal_data, "product_area", "product"),
@@ -249,10 +256,13 @@ TMUCBCalProcess <- function(
                                market_share = cal_product_area$market_share_c * (rand() * 0.2 + 0.9)
     )
     cal_product_area <- mutate(cal_product_area,
-                               sales = cal_product_area$potential * cal_product_area$market_share
+                               sales = cal_product_area$potential * cal_product_area$market_share,
+                               job_id = lit(jobid),
+                               project_id = lit(proposalId),
+                               period_id = lit(periodId)
     )
 
-    write.parquet(cal_data, paste0(output_dir, "competitor"))
+    write.parquet(cal_product_area, paste0(output_dir, "competitor"))
 
     # final summary report 单周期
     cal_result_summary <- select(cal_data, "representative", "status", "p_sales", "pppp_sales", "sales", "quota", "budget", "account")
@@ -282,15 +292,18 @@ TMUCBCalProcess <- function(
                                  sales_force_productivity = cal_result_summary$sales / cal_result_summary$rep_num,
                                  return_on_investment = cal_result_summary$sales / cal_result_summary$budget,
                                  growth_month_on_month = cal_result_summary$sales / cal_result_summary$p_sales - 1.0,
-                                 growth_year_on_year = cal_result_summary$sales / cal_result_summary$pppp_sales - 1.0
+                                 growth_year_on_year = cal_result_summary$sales / cal_result_summary$pppp_sales - 1.0,
+                                 job_id = lit(jobid),
+                                 project_id = lit(proposalId),
+                                 period_id = lit(periodId)
     )
 
     cal_result_summary <- select(cal_result_summary,
-                                 c("sales", "quota", "budget", "new_account", "quota_achv",
+                                 c("job_id", "project_id", "period_id", "sales", "quota", "budget", "new_account", "quota_achv",
                                    "growth_month_on_month", "growth_year_on_year",
                                    "sales_force_productivity", "return_on_investment"))
 
-    write.parquet(cal_data, paste0(output_dir, "summary"))
+    write.parquet(cal_result_summary, paste0(output_dir, "summary"))
 
     unpersist(up01, blocking = FALSE)
     unpersist(up02, blocking = FALSE)
