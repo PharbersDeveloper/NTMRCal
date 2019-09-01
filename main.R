@@ -43,4 +43,11 @@ if (cmd_args[1] == "UCB") {
     )
 }
 
+tmpId <- sparkR.callJMethod(job_scala_proxy, "BPTMUCBPostCal",
+                            tmpId,
+                            "5d57ed3cab0bf2192d416afb",
+                            "5d6baed5b83d06c919a7d7b1",
+                            "5d6baed5b83d06c919a7d7b2",
+                            0)
+
 #PushMessage(list("JobId" = JobId, "Status" = "Finish", "Message" = "", "Progress" = "100"))
