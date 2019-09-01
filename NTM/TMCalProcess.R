@@ -24,7 +24,9 @@ TMCalProcess <- function(
     level_data_path,
     standard_time_path,
     jobid) {
-  
+
+	output_dir <- paste("/tmtest0831/jobs/", jobid, "/")
+	
     #jobid <- uuid::UUIDgenerate()
     #ss <- BPCalSession::GetOrCreateSparkSession("TMCal", "client")
     
@@ -141,7 +143,8 @@ TMCalProcess <- function(
    
     # write.df(cal_data, "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/output/abcde")
     # write.parquet(cal_data, "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/output/abcde-parquet")
-    write.parquet(cal_data, paste("hdfs://192.168.100.137:9000//test/TMTest/output", jobid, "TMResult", sep = "/"))
+    #write.parquet(cal_data, paste("hdfs://192.168.100.137:9000//test/TMTest/output", jobid, "TMResult", sep = "/"))
+    write.parquet(cal_data, paste(output_dir, "TMResult"))
     # BPCalSession::CloseSparkSession()
     
     ## competitor ----
@@ -158,7 +161,8 @@ TMCalProcess <- function(
     
     competitor_data <- select(competitor_data, "product", "sales", "share", "sales_growth")
     
-    write.parquet(competitor_data, paste("hdfs://192.168.100.137:9000//test/TMTest/output", jobid, "TMCompetitor", sep = "/"))
+    #write.parquet(competitor_data, paste("hdfs://192.168.100.137:9000//test/TMTest/output", jobid, "TMCompetitor", sep = "/"))
+    write.parquet(competitor_data, paste(output_dir, "TMCompetitor"))
     
     ## assessment_region_division ----
     cal_data_agg_for_assessment <- ColRename(agg(groupBy(cal_data_for_assessment, "representative", "general_ability", "total_potential", "total_p_sales"),
@@ -288,7 +292,8 @@ TMCalProcess <- function(
     
     assessment <- unionByName(particular_assessment, general_assessment)
     
-    write.parquet(assessment, paste("hdfs://192.168.100.137:9000//test/TMTest/output", jobid, "Assessment", sep = "/"))
+    #write.parquet(assessment, paste("hdfs://192.168.100.137:9000//test/TMTest/output", jobid, "Assessment", sep = "/"))
+    write.parquet(assessment, paste(output_dir, "Assessment"))
     
     unpersist(cal_data_for_assessment, blocking = FALSE)
 }
