@@ -12,8 +12,8 @@ ss <- sparkR.session(appName = "UCB-Submit")
 job_scala_proxy <- sparkR.newJObject("com.pharbers.CallJMethod.BPTMProxy.TMProxy")
 tmpId <- sparkR.callJMethod(job_scala_proxy, "BPTMUCBPreCal", 
                             "5d57ed3cab0bf2192d416afb",
-                            "5d6b7cb3744610c15e0cf474",
-                            "5d6b7cb3744610c15e0cf475",
+                            "5d6baed5b83d06c919a7d7b1",
+                            "5d6baed5b83d06c919a7d7b2",
                             0)
 
 cmd_args = commandArgs(T)
