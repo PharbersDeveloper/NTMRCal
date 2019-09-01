@@ -27,7 +27,7 @@ TMUCBCalProcess <- function(
     standard_time_path,
     jobid) {
 
-    output_dir <- paste("/tmtest0831/jobs/", jobid, "/")
+    output_dir <- paste0("hdfs://192.168.100.137:9000/tmtest0831/jobs/", jobid, "/output/")
     #jobid <- uuid::UUIDgenerate()
     # ss <- sparkR.session(appName = "UCB-Submit")
     cal_data <- read.parquet(cal_data_path)
@@ -213,7 +213,7 @@ TMUCBCalProcess <- function(
                        sums = lit(cal_calc_data$sums)
     )
 
-    write.parquet(cal_data, paste(output_dir, "cal_report"))
+    write.parquet(cal_data, paste0(output_dir, "cal_report"))
 
     persist(cal_data, "MEMORY_ONLY")
     up_result <- cal_data
@@ -231,7 +231,7 @@ TMUCBCalProcess <- function(
                                   sales = cal_hospital_report$potential * (rand() / 100 + 0.015)
     )
 
-    write.parquet(cal_data, paste(output_dir, "hospital_report"))
+    write.parquet(cal_data, paste0(output_dir, "hospital_report"))
 
     ## competitor product area
     cal_product_area <- select(ColRename(agg(groupBy(cal_data, "product_area", "product"),
@@ -252,7 +252,7 @@ TMUCBCalProcess <- function(
                                sales = cal_product_area$potential * cal_product_area$market_share
     )
 
-    write.parquet(cal_data, paste(output_dir, "competitor"))
+    write.parquet(cal_data, paste0(output_dir, "competitor"))
 
     # final summary report 单周期
     cal_result_summary <- select(cal_data, "representative", "status", "p_sales", "pppp_sales", "sales", "quota", "budget", "account")
@@ -290,7 +290,7 @@ TMUCBCalProcess <- function(
                                    "growth_month_on_month", "growth_year_on_year",
                                    "sales_force_productivity", "return_on_investment"))
 
-    write.parquet(cal_data, paste(output_dir, "summary"))
+    write.parquet(cal_data, paste0(output_dir, "summary"))
 
     unpersist(up01, blocking = FALSE)
     unpersist(up02, blocking = FALSE)

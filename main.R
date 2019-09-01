@@ -19,13 +19,15 @@ tmpId <- sparkR.callJMethod(job_scala_proxy, "BPTMUCBPreCal",
 cmd_args = commandArgs(T)
 if (cmd_args[1] == "UCB") {
 	JobId <<- cmd_args[6]
+    output_dir <- paste0("hdfs://192.168.100.137:9000/tmtest0831/jobs/", tmpId, "/input/")
 	#PushMessage(list("JobId" = JobId, "Status" = "Running", "Message" = "", "Progress" = "0"))
     source("TMUCBCalProcess.R")
     TMUCBCalProcess(
-        cal_data_path = cmd_args[2],
+        cal_data_path =  paste0(output_dir, "cal_data"), #cmd_args[2],
         weight_path = cmd_args[3],
         curves_path = cmd_args[4],
-        competitor_path = cmd_args[5]
+        competitor_path = paste0(output_dir, "cal_comp"), #cmd_args[5]
+        jobid = tmpId
     )
 } else if (cmd_args[1] == "NTM") {
 	JobId <<- cmd_args[9]
