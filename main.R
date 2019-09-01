@@ -9,7 +9,7 @@ TMCalCurveSkeleton3 <- BPRSparkCalCommon::TMCalCurveSkeleton3
 curve_func <- BPRSparkCalCommon::curve_func
 
 ss <- sparkR.session(appName = "UCB-Submit")
-job_scala_proxy <- sparkR.newJObject("com.pharbers.BPTMProxy.TMProxy")
+job_scala_proxy <- sparkR.newJObject("com.pharbers.CallJMethod.BPTMProxy.TMProxy")
 tmpId <- sparkR.callJMethod(job_scala_proxy, "BPTMUCBPreCal", 
                             "5d57ed3cab0bf2192d416afb",
                             "5d6b7cb3744610c15e0cf474",
