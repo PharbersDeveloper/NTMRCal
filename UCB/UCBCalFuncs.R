@@ -126,3 +126,11 @@ cal_develop_fee <- function(df) {
 cal_update_status <- function(df) {
     ifelse(df$budget_m >= df$develop_fee, "正在开发", "未开发")
 }
+
+cal_sale_increase <- function(df) {
+    ifelse(df$sums > df$sumps, df$sums - df$sumps, 0)
+}
+
+cal_next_budget <- function(df) {
+    df$total_budget + df$sales_increase * 0.06
+}
