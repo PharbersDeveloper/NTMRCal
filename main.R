@@ -8,26 +8,29 @@ library(RKafkaProxy)
 TMCalCurveSkeleton3 <- BPRSparkCalCommon::TMCalCurveSkeleton3
 curve_func <- BPRSparkCalCommon::curve_func
 
-cmd_args = commandArgs(T)
+ss <- sparkR.session(appName = "UCB-Submit")
+job_scala_proxy <- sparkR.newJObject("com.pharbers.BPTMProxy.TMProxy")
+tmpId <- sparkR.callJMethod(job_scala_proxy, "BPTMUCBPreCal", 
+                            "5d57ed3cab0bf2192d416afb",
+                            "5d6b7cb3744610c15e0cf474",
+                            "5d6b7cb3744610c15e0cf475",
+                            0)
 
+cmd_args = commandArgs(T)
 if (cmd_args[1] == "UCB") {
 	JobId <<- cmd_args[6]
-	PushMessage(list("JobId" = JobId, "Status" = "Running", "Message" = "", "Progress" = "0"))
-
+	#PushMessage(list("JobId" = JobId, "Status" = "Running", "Message" = "", "Progress" = "0"))
     source("TMUCBCalProcess.R")
-    ss <- sparkR.session(appName = "UCB-Submit")
     TMUCBCalProcess(
         cal_data_path = cmd_args[2],
         weight_path = cmd_args[3],
         curves_path = cmd_args[4],
-        competitor_path = cmd_args[5],
-        jobid = JobId
+        competitor_path = cmd_args[5]
     )
 } else if (cmd_args[1] == "NTM") {
 	JobId <<- cmd_args[9]
 	PushMessage(list("JobId" = JobId, "Status" = "Running", "Message" = "", "Progress" = "0"))
     source("TMCalProcess.R")
-    ss <- sparkR.session(appName = "NTM-Submit")
     TMCalProcess(
         cal_data_path = cmd_args[2],
         weight_path = cmd_args[3],
@@ -40,4 +43,4 @@ if (cmd_args[1] == "UCB") {
     )
 }
 
-PushMessage(list("JobId" = JobId, "Status" = "Finish", "Message" = "", "Progress" = "100"))
+#PushMessage(list("JobId" = JobId, "Status" = "Finish", "Message" = "", "Progress" = "100"))
