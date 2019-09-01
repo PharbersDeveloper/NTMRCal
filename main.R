@@ -26,7 +26,7 @@ tmpId <- sparkR.callJMethod(job_scala_proxy, "BPTMUCBPreCal",
 
 if (cmd_args[1] == "UCB") {
     output_dir <- paste0("hdfs://192.168.100.137:9000/tmtest0831/jobs/", tmpId, "/input/")
-	#PushMessage(list("JobId" = JobId, "Status" = "Running", "Message" = "", "Progress" = "0"))
+	PushMessage(list("JobId" = JobID, "Status" = "Running", "Message" = "", "Progress" = "0"))
     source("TMUCBCalProcess.R")
     TMUCBCalProcess(
         cal_data_path =  paste0(output_dir, "cal_data"), #cmd_args[2],
@@ -39,8 +39,7 @@ if (cmd_args[1] == "UCB") {
         periodid = periodId
     )
 } else if (cmd_args[1] == "NTM") {
-	JobId <<- cmd_args[9]
-	PushMessage(list("JobId" = JobId, "Status" = "Running", "Message" = "", "Progress" = "0"))
+	PushMessage(list("JobId" = JobID, "Status" = "Running", "Message" = "", "Progress" = "0"))
     source("TMCalProcess.R")
     TMCalProcess(
         cal_data_path = cmd_args[2],
@@ -61,4 +60,4 @@ tmpId <- sparkR.callJMethod(job_scala_proxy, "BPTMUCBPostCal",
                             periodId,
                             as.numeric(phase))
 
-#PushMessage(list("JobId" = JobId, "Status" = "Finish", "Message" = "", "Progress" = "100"))
+PushMessage(list("JobId" = JobID, "Status" = "Finish", "Message" = "", "Progress" = "100"))
