@@ -13,8 +13,21 @@
 # 10. 计算 oa, share delta, share & salesu
 # 11. 计算代表的销售达成
 
-source("UCBDataBinding.R")
-source("UCBCalFuncs.R")
+Sys.setenv(SPARK_HOME="D:/tools/spark-2.3.0-bin-hadoop2.7")
+Sys.setenv(YARN_CONF_DIR="D:/tools/hadoop-3.0.3")
+
+library(magrittr)
+library(SparkR)
+library(BPCalSession)
+library(BPRDataLoading)
+library(BPRSparkCalCommon)
+library(uuid)
+
+TMCalCurveSkeleton3 <- BPRSparkCalCommon::TMCalCurveSkeleton3
+curve_func <- BPRSparkCalCommon::curve_func
+
+source("./UCB/UCBDataBinding.R", encoding = "UTF-8")
+source("./UCB/UCBCalFuncs.R", encoding = "UTF-8")
 
 #' UCB Calculation
 #' @export
@@ -29,15 +42,29 @@ TMUCBCalProcess <- function(
     proposalid,
     projectid,
     periodid) {
+    
+    # cal_data_path = "hdfs://192.168.100.137:9000/test/UCBTest/inputParquet/TMInputParquet0820/cal_data_20190904"
+    # weight_path = "hdfs://192.168.100.137:9000/test/UCBTest/inputParquet/TMInputParquet0820/weightages"
+    # curves_path = "hdfs://192.168.100.137:9000/test/UCBTest/inputParquet/TMInputParquet0820/curves-n"
+    # competitor_path = "hdfs://192.168.100.137:9000/test/UCBTest/inputParquet/TMInputParquet0820/competitor"
+    # level_data_path = "hdfs://192.168.100.137:9000/test/UCBTest/inputParquet/TMInputParquet0820/competitor"
+    # standard_time_path = "hdfs://192.168.100.137:9000/test/UCBTest/inputParquet/TMInputParquet0820/competitor"
+    # jobid = uuid::UUIDgenerate()
+    # proposalid = uuid::UUIDgenerate()
+    # projectid = uuid::UUIDgenerate()
+    # periodid = uuid::UUIDgenerate()
 
     output_dir <- paste0("hdfs://192.168.100.137:9000/tmtest0831/jobs/", jobid, "/output/")
     #jobid <- uuid::UUIDgenerate()
-    # ss <- sparkR.session(appName = "UCB-Submit")
-    cal_data <- read.parquet(cal_data_path)
-    
-    weightages <- read.parquet(weight_path)
-
-    curves <- CastCol2Double(read.parquet(curves_path), c("x", "y"))
+    #ss <- sparkR.session(appName = "UCB-Submit")
+    ss <- BPCalSession::GetOrCreateSparkSession("UCBCal", "client")
+    # cal_data <- read.parquet(cal_data_path)
+    cal_data <- BPRDataLoading::LoadDataFromParquent(cal_data_path)
+    #print(head(cal_data, 10))
+    #weightages <- read.parquet(weight_path)
+    weightages <- BPRDataLoading::LoadDataFromParquent(weight_path)
+    curves <- BPRDataLoading::LoadDataFromParquent(curves_path)
+    curves <- CastCol2Double(curves, c("x", "y"))
     curves <- collect(curves)
 
     cal_data <- UCBDataBinding(cal_data, weightages)
@@ -115,8 +142,10 @@ TMUCBCalProcess <- function(
 
     cal_developed_data <- mutate(cal_developed_data,
                                  # factor 1
-                                 hospital_quota_base_factor_m = cal_hospital_quota_base_factor_m(cal_developed_data),
-                                 hospital_product_quota_growth_factor_m = cal_hospital_product_quota_growth_factor_m(cal_developed_data)
+                                 hospital_quota_base_factor_m = 
+                                     cal_hospital_quota_base_factor_m(cal_developed_data),
+                                 hospital_product_quota_growth_factor_m = 
+                                     cal_hospital_product_quota_growth_factor_m(cal_developed_data)
     )
     cal_developed_data <- mutate(cal_developed_data,
                                  # factor 1
@@ -135,8 +164,9 @@ TMUCBCalProcess <- function(
 
     cal_developed_data <- TMCalCurveSkeleton2(cal_developed_data, curves,
                                               c(
-                                                  "curve02:curve03:curve03", "oa_factor_base", "budget_factor", "product$开拓来:威芃可:优派西",
-                                                  "curve09", "p_offer_attractiveness", "p_oa_factor", "None"
+                                                  "curve02:curve03:curve03", "oa_factor_base", "budget_factor", 
+                                                  "product$开拓来:威芃可:优派西", "curve09", "p_offer_attractiveness", 
+                                                  "p_oa_factor", "None"
                                               ), TMCalValue2String)
 
     cal_developed_data <- mutate(cal_developed_data,
@@ -152,7 +182,8 @@ TMUCBCalProcess <- function(
     # market share
     cal_developed_data <- TMCalCurveSkeleton2(cal_developed_data, curves,
                                               c(
-                                                  "curve01:curve05", "market_share", "offer_attractiveness_adj", "status$已开发:未开发"
+                                                  "curve01:curve05", "market_share", "offer_attractiveness_adj", 
+                                                  "status$已开发:未开发"
                                               ), TMCalValue2String)
 
     cal_developed_data <- mutate(cal_developed_data,
@@ -168,9 +199,10 @@ TMUCBCalProcess <- function(
     )
 
     cal_developed_data <- ColRename(select(cal_developed_data,
-                                           c("city", "hospital", "hospital_level", "representative", "product", "product_area", "potential",
-                                             "patient", "status", "rep_num", "hosp_num", "initial_budget", "p_quota", "p_budget", "p_sales",
-                                             "pppp_sales", "p_ytd_sales", "quota", "budget", "market_share_m", "sales", "ytd_sales")),
+                                           c("city", "hospital", "hospital_level", "representative", "product", "product_area", 
+                                             "potential", "patient", "status", "is_drugstore", "rep_num", "hosp_num", 
+                                             "initial_budget", "p_quota", "p_budget", "p_sales", "pppp_sales", "p_ytd_sales", 
+                                             "quota", "budget", "market_share_m", "sales", "ytd_sales")),
                                     c("market_share_m"), c("market_share"))
 
     # 未开发
@@ -188,16 +220,24 @@ TMUCBCalProcess <- function(
     )
 
     cal_undev_data <- ColRename(select(cal_undev_data,
-                                       c("city", "hospital", "hospital_level", "representative", "product", "product_area", "potential",
-                                         "patient", "status_m", "rep_num", "hosp_num", "initial_budget", "p_quota", "p_budget", "p_sales",
-                                         "pppp_sales", "p_ytd_sales", "quota", "budget_m", "market_share", "sales", "ytd_sales")),
+                                       c("city", "hospital", "hospital_level", "representative", "product", "product_area", 
+                                         "potential", "patient", "status_m", "is_drugstore", "rep_num", "hosp_num", "initial_budget", 
+                                         "p_quota", "p_budget", "p_sales", "pppp_sales", "p_ytd_sales", "quota", "budget_m", 
+                                         "market_share", "sales", "ytd_sales")),
                                 c("status_m", "budget_m"), c("status", "budget"))
 
     cal_data <- rbind(cal_developed_data, cal_undev_data)
     cal_data <- filter(cal_data, isNotNull(cal_data$status))
     cal_data <- mutate(cal_data,
+                       in_sales = ifelse(cal_data$is_drugstore == 1, cal_data$sales * 0.5, cal_data$sales),
+                       out_sales = ifelse(cal_data$is_drugstore == 1, cal_data$sales * 0.5, 0))
+    cal_data <- mutate(cal_data,
                        account = ifelse(cal_data$status == "正在开发", 1, 0),
-                       quota_achv = ifelse(cal_data$quota > 0, cal_data$sales / cal_data$quota, 0)
+                       quota_achv = ifelse(cal_data$quota == 0 & cal_data$sales == 0,
+                                           0,
+                                           ifelse(cal_data$quota == 0 & cal_data$sales > 0,
+                                                  1,
+                                                  cal_data$sales / cal_data$quota))
     )
 
     persist(cal_data, "MEMORY_ONLY")
@@ -217,7 +257,7 @@ TMUCBCalProcess <- function(
                        sumps = lit(cal_calc_data$sumps),
                        sums = lit(cal_calc_data$sums),
                        job_id = lit(jobid),
-                       project_id = lit(projectId),
+                       project_id = lit(projectid),
                        period_id = lit(periodid)
     )
     
@@ -226,11 +266,11 @@ TMUCBCalProcess <- function(
     cal_data <- mutate(cal_data,
                        next_budget = cal_next_budget(cal_data))
 
-    cal_data = distinct(cal_data)
+    cal_data <- distinct(cal_data)
     
-    cal_data <-  ColRename(agg(groupBy(cal_data, "product", "representative", "hospital"),
+    cal_data <-  ColRename(agg(groupBy(cal_data, "product", "representative", "hospital", "is_drugstore"),
                                job_id = lit(jobid),
-                               project_id = lit(projectId),
+                               project_id = lit(projectid),
                                period_id = lit(periodid),
                                city = first(cal_data$city),
                                hospital_level = first(cal_data$hospital_level),
@@ -258,9 +298,10 @@ TMUCBCalProcess <- function(
                                account = first(cal_data$account),
                                new_account = max(cal_data$new_account)
                                ),
-                                c("max(potential)", "max(patient)", "first(status)", "max(rep_num)", "max(hosp_num)", "max(initial_budget)", 
-                                  "max(p_quota)", "max(p_budget)", "max(p_sales)", "max(pppp_sales)", "max(p_ytd_sales)", "max(quota)", "max(budget)",
-                                  "max(market_share)", "max(sales)", "max(ytd_sales)", "max(new_account)", "max(total_budget", "max(sumps)", "max(sums)"),
+                                c("max(potential)", "max(patient)", "first(status)", "max(rep_num)", "max(hosp_num)", 
+                                  "max(initial_budget)", "max(p_quota)", "max(p_budget)", "max(p_sales)", "max(pppp_sales)", 
+                                  "max(p_ytd_sales)", "max(quota)", "max(budget)", "max(market_share)", "max(sales)", 
+                                  "max(ytd_sales)", "max(new_account)", "max(total_budget", "max(sumps)", "max(sums)"),
                                 c("potential", "patient", "status", "rep_num", "hosp_num", "initial_budget", 
                                   "p_quota", "p_budget", "p_sales", "pppp_sales", "p_ytd_sales", "quota", "budget",
                                   "market_share", "sales", "ytd_sales", "new_account", "total_budget", "sumps", "sums"))
@@ -270,29 +311,30 @@ TMUCBCalProcess <- function(
     persist(cal_data, "MEMORY_ONLY")
     up_result <- cal_data
 
-    ## competitor hospital report
-    cal_hospital_report <- ColRename(agg(groupBy(cal_data, "product"),
-                                         potential="sum"),
-                                     c("sum(potential)"),
-                                     c("potential"))
+    ## out hospital report
+    # cal_hospital_report <- ColRename(agg(groupBy(cal_data, "product"),
+    #                                      potential="sum"),
+    #                                  c("sum(potential)"),
+    #                                  c("potential"))
+    # 
+    # cal_hospital_report <- mutate(cal_hospital_report,
+    #                               potential = cal_hospital_report$potential * (rand() / 100 + 0.01)
+    # )
+    # cal_hospital_report <- mutate(cal_hospital_report,
+    #                               sales = cal_hospital_report$potential * (rand() / 100 + 0.015)
+    # )
+    # 
+    # write.parquet(cal_hospital_report, paste0(output_dir, "hospital_report"))
 
-    cal_hospital_report <- mutate(cal_hospital_report,
-                                  potential = cal_hospital_report$potential * (rand() / 100 + 0.01)
-    )
-    cal_hospital_report <- mutate(cal_hospital_report,
-                                  sales = cal_hospital_report$potential * (rand() / 100 + 0.015)
-    )
-
-    write.parquet(cal_hospital_report, paste0(output_dir, "hospital_report"))
-
-    ## competitor product area
-    cal_product_area <- select(ColRename(agg(groupBy(cal_data, "product_area", "product"),
+    ## competitor product report
+    cal_product_area <- select(ColRename(agg(groupBy(cal_data, "product_area"),
                                              potential="sum"),
                                          c("product_area", "sum(potential)"),
                                          c("product_area_m", "potential")),
                                "product_area_m", "potential")
 
-    competitor <- read.parquet(competitor_path)
+    #competitor <- read.parquet(competitor_path)
+    competitor <- BPRDataLoading::LoadDataFromParquent(competitor_path)
     competitor <- CastCol2Double(competitor, c("market_share_c"))
 
     cal_product_area <- join(cal_product_area, competitor, cal_product_area$product_area_m == competitor$product_area, "inner")
@@ -303,8 +345,8 @@ TMUCBCalProcess <- function(
     cal_product_area <- mutate(cal_product_area,
                                sales = cal_product_area$potential * cal_product_area$market_share,
                                job_id = lit(jobid),
-                               project_id = lit(projectId),
-                               period_id = lit(periodId)
+                               project_id = lit(projectid),
+                               period_id = lit(periodid)
     )
 
     cal_product_area = distinct(cal_product_area)
@@ -330,18 +372,35 @@ TMUCBCalProcess <- function(
                                         sum(cal_result_summary$new_account),
                                         sum(cal_result_summary$budget),
                                         count(cal_result_summary$representative)),
-                                    c("sum(p_sales)", "sum(pppp_sales)", "sum(sales)", "sum(quota)", "sum(new_account)", "sum(budget)", "count(representative)"),
+                                    c("sum(p_sales)", "sum(pppp_sales)", "sum(sales)", "sum(quota)", "sum(new_account)", 
+                                      "sum(budget)", "count(representative)"),
                                     c("p_sales", "pppp_sales", "sales", "quota", "new_account", "budget", "rep_num"))
 
     cal_result_summary <- mutate(cal_result_summary,
-                                 quota_achv = cal_result_summary$sales / cal_result_summary$quota,
+                                 quota_achv = ifelse(cal_result_summary$quota == 0 & cal_result_summary$sales == 0,
+                                                     0,
+                                                     ifelse(cal_result_summary$quota == 0 & cal_result_summary$sales > 0,
+                                                            1,
+                                                            cal_result_summary$sales / cal_result_summary$quota)),
                                  sales_force_productivity = cal_result_summary$sales / cal_result_summary$rep_num,
-                                 return_on_investment = cal_result_summary$sales / cal_result_summary$budget,
-                                 growth_month_on_month = cal_result_summary$sales / cal_result_summary$p_sales - 1.0,
-                                 growth_year_on_year = cal_result_summary$sales / cal_result_summary$pppp_sales - 1.0,
+                                 return_on_investment = ifelse(cal_result_summary$budget == 0 & cal_result_summary$sales == 0,
+                                                               0,
+                                                               ifelse(cal_result_summary$budget == 0 & cal_result_summary$sales > 0,
+                                                                      1,
+                                                                      cal_result_summary$sales / cal_result_summary$budget)),
+                                 growth_month_on_month = ifelse(cal_result_summary$p_sales == 0 & cal_result_summary$sales == 0,
+                                                                0,
+                                                                ifelse(cal_result_summary$p_sales == 0 & cal_result_summary$sales > 0,
+                                                                       1,
+                                                                       cal_result_summary$sales / cal_result_summary$p_sales - 1.0)),
+                                 growth_year_on_year = ifelse(cal_result_summary$pppp_sales == 0 & cal_result_summary$sales == 0,
+                                                              0,
+                                                              ifelse(cal_result_summary$pppp_sales == 0 & cal_result_summary$sales > 0,
+                                                                     1,
+                                                                     cal_result_summary$sales / cal_result_summary$pppp_sales - 1.0)),
                                  job_id = lit(jobid),
-                                 project_id = lit(projectId),
-                                 period_id = lit(periodId)
+                                 project_id = lit(projectid),
+                                 period_id = lit(periodid)
     )
 
     cal_result_summary <- select(cal_result_summary,
@@ -357,3 +416,15 @@ TMUCBCalProcess <- function(
     unpersist(up03, blocking = FALSE)
     unpersist(up_result, blocking = FALSE)
 }
+
+TMUCBCalProcess(
+    cal_data_path = "hdfs://192.168.100.137:9000/test/UCBTest/inputParquet/TMInputParquet0820/cal_data",
+    weight_path = "hdfs://192.168.100.137:9000/test/UCBTest/inputParquet/TMInputParquet0820/weightages",
+    curves_path = "hdfs://192.168.100.137:9000/test/UCBTest/inputParquet/TMInputParquet0820/curves-n",
+    competitor_path = "hdfs://192.168.100.137:9000/test/UCBTest/inputParquet/TMInputParquet0820/competitor",
+    level_data_path = "hdfs://192.168.100.137:9000/test/UCBTest/inputParquet/TMInputParquet0820/competitor",
+    standard_time_path = "hdfs://192.168.100.137:9000/test/UCBTest/inputParquet/TMInputParquet0820/competitor",
+    jobid = uuid::UUIDgenerate(),
+    proposalid = uuid::UUIDgenerate(),
+    projectid = uuid::UUIDgenerate(),
+    periodid = uuid::UUIDgenerate())
