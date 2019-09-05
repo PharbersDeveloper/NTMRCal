@@ -15,6 +15,7 @@
 
 source("UCBDataBinding.R")
 source("UCBCalFuncs.R")
+library(BPCalSession)
 
 #' UCB Calculation
 #' @export
@@ -82,7 +83,9 @@ TMUCBCalProcess <- function(
                                  c("product_m", "sumptt", "sumpttm", "sumps", "sumqt"))
 
     cal_data <- join(cal_data, cal_market_data, cal_data$product == cal_market_data$product_m, "inner")
-    cal_data <- join(cal_data, cal_dist_data, cal_data$product == cal_dist_data$product_mm, "inner")
+    cal_data <- join(cal_data, cal_dist_data, 
+                     cal_data$product == cal_dist_data$product_mm &
+                     cal_data$representative == cal_dist_data$representative_m, "inner")
 
     cal_data <- mutate(cal_data,
                        potential_contri = cal_data$potential_m / cal_data$sumpttm,
@@ -217,7 +220,7 @@ TMUCBCalProcess <- function(
                        sumps = lit(cal_calc_data$sumps),
                        sums = lit(cal_calc_data$sums),
                        job_id = lit(jobid),
-                       project_id = lit(projectId),
+                       project_id = lit(projectid),
                        period_id = lit(periodid)
     )
     
@@ -230,7 +233,7 @@ TMUCBCalProcess <- function(
     
     cal_data <-  ColRename(agg(groupBy(cal_data, "product", "representative", "hospital"),
                                job_id = lit(jobid),
-                               project_id = lit(projectId),
+                               project_id = lit(projectid),
                                period_id = lit(periodid),
                                city = first(cal_data$city),
                                hospital_level = first(cal_data$hospital_level),
@@ -303,8 +306,8 @@ TMUCBCalProcess <- function(
     cal_product_area <- mutate(cal_product_area,
                                sales = cal_product_area$potential * cal_product_area$market_share,
                                job_id = lit(jobid),
-                               project_id = lit(projectId),
-                               period_id = lit(periodId)
+                               project_id = lit(projectid),
+                               period_id = lit(periodid)
     )
 
     cal_product_area = distinct(cal_product_area)
@@ -340,8 +343,8 @@ TMUCBCalProcess <- function(
                                  growth_month_on_month = cal_result_summary$sales / cal_result_summary$p_sales - 1.0,
                                  growth_year_on_year = cal_result_summary$sales / cal_result_summary$pppp_sales - 1.0,
                                  job_id = lit(jobid),
-                                 project_id = lit(projectId),
-                                 period_id = lit(periodId)
+                                 project_id = lit(projectid),
+                                 period_id = lit(periodid)
     )
 
     cal_result_summary <- select(cal_result_summary,
