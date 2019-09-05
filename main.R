@@ -16,7 +16,14 @@ projectId <- cmd_args[4]
 periodId <- cmd_args[5]
 phase <- cmd_args[6]
 
-ss <- sparkR.session(appName = "UCB-Submit")
+ss <- sparkR.session(
+    appName = "UCB-Submit",
+    sparkConfig = list(es.nodes.wan.only = TRUE,
+                       es.pushdown = TRUE,
+                       es.index.auto.create = TRUE,
+                       es.nodes = "pharbers.com",
+                       es.port = 9200L) 
+    )
 job_scala_proxy <- sparkR.newJObject("com.pharbers.CallJMethod.BPTMProxy.TMProxy")
 tmpId <- sparkR.callJMethod(job_scala_proxy, "BPTMUCBPreCal", 
                             proposalId,
@@ -53,11 +60,18 @@ if (cmd_args[1] == "UCB") {
     )
 }
 
-tmpId <- sparkR.callJMethod(job_scala_proxy, "BPTMUCBPostCal",
-                            tmpId,
-                            proposalId,
-                            projectId,
-                            periodId,
-                            as.numeric(phase))
+sparkR.callJMethod(job_scala_proxy, "BPTMUCBPostCal",
+                   tmpId,
+                   proposalId,
+                   projectId,
+                   periodId,
+                   as.numeric(phase))
+
+sparkR.callJMethod(job_scala_proxy, "BPTMUBShowResult",
+                   tmpId,
+                   proposalId,
+                   projectId,
+                   periodId,
+                   as.numeric(phase))
 
 PushMessage(list("JobId" = JobID, "Status" = "Finish", "Message" = "", "Progress" = "100"))
