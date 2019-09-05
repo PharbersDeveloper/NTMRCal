@@ -306,10 +306,10 @@ TMUCBCalProcess <- function(
                                    "growth_month_on_month", "growth_year_on_year",
                                    "sales_force_productivity", "return_on_investment"))
 
-    write.parquet(cal_data, paste0(output_dir, "cal_report"))
     write.parquet(cal_hospital_report, paste0(output_dir, "hospital_report"))
     write.parquet(cal_product_area, paste0(output_dir, "competitor"))
     write.parquet(cal_result_summary, paste0(output_dir, "summary"))
+    write.parquet(cal_data, paste0(output_dir, "cal_report"))
 
     unpersist(up01, blocking = FALSE)
     unpersist(up02, blocking = FALSE)
