@@ -15,7 +15,6 @@
 
 source("UCBDataBinding.R")
 source("UCBCalFuncs.R")
-library(BPCalSession)
 
 #' UCB Calculation
 #' @export
@@ -229,47 +228,6 @@ TMUCBCalProcess <- function(
     cal_data <- mutate(cal_data,
                        next_budget = cal_next_budget(cal_data))
 
-    cal_data = distinct(cal_data)
-    
-    cal_data <-  ColRename(agg(groupBy(cal_data, "product", "representative", "hospital"),
-                               job_id = lit(jobid),
-                               project_id = lit(projectid),
-                               period_id = lit(periodid),
-                               city = first(cal_data$city),
-                               hospital_level = first(cal_data$hospital_level),
-                               product_area = first(cal_data$product_area),
-                               potential = max(cal_data$potential),
-                               patient = max(cal_data$patient),
-                               status = first(cal_data$status),
-                               rep_num = max(cal_data$rep_num),
-                               hosp_num = max(cal_data$hosp_num),
-                               initial_budget = max(cal_data$initial_budget),
-                               p_quota = max(cal_data$p_quota),
-                               quota = max(cal_data$quota),
-                               quota_achv = max(cal_data$quota_achv),
-                               p_budget = max(cal_data$p_budget),
-                               budget = max(cal_data$budget),
-                               total_budget = max(cal_data$total_budget),
-                               p_sales = max(cal_data$p_sales),
-                               sales = max(cal_data$sales),
-                               sums = max(cal_data$sums),
-                               pppp_sales = max(cal_data$pppp_sales),
-                               p_ytd_sales = max(cal_data$p_ytd_sales),
-                               sumps = max(cal_data$sumps),
-                               ytd_sales = max(cal_data$ytd_sales),
-                               market_share = max(cal_data$market_share),
-                               account = first(cal_data$account),
-                               new_account = max(cal_data$new_account)
-                               ),
-                                c("max(potential)", "max(patient)", "first(status)", "max(rep_num)", "max(hosp_num)", "max(initial_budget)", 
-                                  "max(p_quota)", "max(p_budget)", "max(p_sales)", "max(pppp_sales)", "max(p_ytd_sales)", "max(quota)", "max(budget)",
-                                  "max(market_share)", "max(sales)", "max(ytd_sales)", "max(new_account)", "max(total_budget", "max(sumps)", "max(sums)"),
-                                c("potential", "patient", "status", "rep_num", "hosp_num", "initial_budget", 
-                                  "p_quota", "p_budget", "p_sales", "pppp_sales", "p_ytd_sales", "quota", "budget",
-                                  "market_share", "sales", "ytd_sales", "new_account", "total_budget", "sumps", "sums"))
-    
-    write.parquet(cal_data, paste0(output_dir, "cal_report"))
-
     persist(cal_data, "MEMORY_ONLY")
     up_result <- cal_data
 
@@ -286,8 +244,7 @@ TMUCBCalProcess <- function(
                                   sales = cal_hospital_report$potential * (rand() / 100 + 0.015)
     )
 
-    write.parquet(cal_hospital_report, paste0(output_dir, "hospital_report"))
-
+    
     ## competitor product area
     cal_product_area <- select(ColRename(agg(groupBy(cal_data, "product_area", "product"),
                                              potential="sum"),
@@ -310,10 +267,7 @@ TMUCBCalProcess <- function(
                                period_id = lit(periodid)
     )
 
-    cal_product_area = distinct(cal_product_area)
-    write.parquet(cal_product_area, paste0(output_dir, "competitor"))
-
-    # final summary report 单周期
+    # # final summary report 单周期
     cal_result_summary <- select(cal_data, "representative", "status", "p_sales", "pppp_sales", "sales", "quota", "budget", "account")
     cal_result_summary <- ColRename(agg(groupBy(cal_result_summary, "representative"),
                                         p_sales ="sum",
@@ -326,13 +280,13 @@ TMUCBCalProcess <- function(
                                     c("p_sales", "pppp_sales", "sales", "quota", "new_account", "budget"))
 
     cal_result_summary <- ColRename(agg(cal_result_summary,
-                                        sum(cal_result_summary$p_sales),
-                                        sum(cal_result_summary$pppp_sales),
-                                        sum(cal_result_summary$sales),
-                                        sum(cal_result_summary$quota),
-                                        sum(cal_result_summary$new_account),
-                                        sum(cal_result_summary$budget),
-                                        count(cal_result_summary$representative)),
+                                        p_sales = "sum",
+                                        pppp_sales = "sum",
+                                        sales = "sum",
+                                        quota = "sum",
+                                        new_account = "sum",
+                                        budget = "sum",
+                                        representative = "count"),
                                     c("sum(p_sales)", "sum(pppp_sales)", "sum(sales)", "sum(quota)", "sum(new_account)", "sum(budget)", "count(representative)"),
                                     c("p_sales", "pppp_sales", "sales", "quota", "new_account", "budget", "rep_num"))
 
@@ -352,7 +306,9 @@ TMUCBCalProcess <- function(
                                    "growth_month_on_month", "growth_year_on_year",
                                    "sales_force_productivity", "return_on_investment"))
 
-    cal_result_summary = distinct(cal_result_summary)
+    write.parquet(cal_data, paste0(output_dir, "cal_report"))
+    write.parquet(cal_hospital_report, paste0(output_dir, "hospital_report"))
+    write.parquet(cal_product_area, paste0(output_dir, "competitor"))
     write.parquet(cal_result_summary, paste0(output_dir, "summary"))
 
     unpersist(up01, blocking = FALSE)
