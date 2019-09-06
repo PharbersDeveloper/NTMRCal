@@ -177,7 +177,7 @@ TMCalProcess <- function(
         job_id = lit(jobid),
         project_id = lit(projectid),
         period_id = lit(periodid)
-    ), paste0(output_dir, "TMResult"))
+    ), paste0(output_dir, "cal_report"))
     # BPCalSession::CloseSparkSession()
     
     ## competitor ----
@@ -198,7 +198,7 @@ TMCalProcess <- function(
     write.parquet(mutate(competitor_data, 
                          job_id = lit(jobid),
                          project_id = lit(projectid),
-                         period_id = lit(periodid)), paste0(output_dir, "TMCompetitor"))
+                         period_id = lit(periodid)), paste0(output_dir, "competitor"))
     
     ## assessment_region_division ----
     cal_data_agg_for_assessment <- ColRename(agg(groupBy(cal_data_for_assessment, "representative", "general_ability", "total_potential", "total_p_sales"),
@@ -332,7 +332,7 @@ TMCalProcess <- function(
     write.parquet(mutate(assessment,
                          job_id = lit(jobid),
                          project_id = lit(projectid),
-                         period_id = lit(periodid)), paste0(output_dir, "Assessment"))
+                         period_id = lit(periodid)), paste0(output_dir, "assessment"))
     
     unpersist(cal_data_for_assessment, blocking = FALSE)
 }
