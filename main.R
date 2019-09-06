@@ -31,8 +31,9 @@ tmpId <- sparkR.callJMethod(job_scala_proxy, "BPTMUCBPreCal",
                             periodId,
                             as.numeric(phase))
 
+output_dir <- paste0("hdfs://192.168.100.137:9000/tmtest0831/jobs/", tmpId, "/input/")
+
 if (cmd_args[1] == "UCB") {
-    output_dir <- paste0("hdfs://192.168.100.137:9000/tmtest0831/jobs/", tmpId, "/input/")
 	PushMessage(list("JobId" = JobID, "Status" = "Running", "Message" = "", "Progress" = "0"))
     source("TMUCBCalProcess.R")
     TMUCBCalProcess(
