@@ -49,14 +49,17 @@ if (cmd_args[1] == "UCB") {
 	PushMessage(list("JobId" = JobID, "Status" = "Running", "Message" = "", "Progress" = "0"))
     source("TMCalProcess.R")
     TMCalProcess(
-        cal_data_path = cmd_args[2],
-        weight_path = cmd_args[3],
-        manage_path = cmd_args[4],
-        curves_path = cmd_args[5],
-        competitor_path = cmd_args[6],
-        standard_time_path = cmd_args[7],
-        level_data_path = cmd_args[8],
-        jobid = JobId
+        cal_data_path =  paste0(output_dir, "cal_data"), #cmd_args[2],
+        weight_path = cmd_args[7],
+        curves_path = cmd_args[8],
+        manage_path = cmd_args[9],
+        competitor_path = paste0(output_dir, "cal_comp"), #cmd_args[5]
+        standard_time_path = cmd_args[10],
+        level_data_path = cmd_args[11],
+        jobid = tmpId,
+        proposalid = proposalId,
+        projectid = projectId,
+        periodid = periodId
     )
 }
 
