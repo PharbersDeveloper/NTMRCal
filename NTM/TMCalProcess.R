@@ -332,7 +332,7 @@ TMCalProcess <- function(
     write.parquet(mutate(assessment,
                          job_id = lit(jobid),
                          project_id = lit(projectid),
-                         period_id = lit(periodid)), paste0(output_dir, "assessment"))
+                         period_id = lit(periodid)), paste0(output_dir, "summary"))
     
     unpersist(cal_data_for_assessment, blocking = FALSE)
 }
