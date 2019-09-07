@@ -232,17 +232,17 @@ TMUCBCalProcess <- function(
     up_result <- cal_data
 
     ## competitor hospital report
-    cal_hospital_report <- ColRename(agg(groupBy(cal_data, "product"),
-                                         potential="sum"),
-                                     c("sum(potential)"),
-                                     c("potential"))
+    # cal_hospital_report <- ColRename(agg(groupBy(cal_data, "product"),
+    #                                      potential="sum"),
+    #                                  c("sum(potential)"),
+    #                                  c("potential"))
 
-    cal_hospital_report <- mutate(cal_hospital_report,
-                                  potential = cal_hospital_report$potential * (rand() / 100 + 0.01)
-    )
-    cal_hospital_report <- mutate(cal_hospital_report,
-                                  sales = cal_hospital_report$potential * (rand() / 100 + 0.015)
-    )
+    # cal_hospital_report <- mutate(cal_hospital_report,
+    #                               potential = cal_hospital_report$potential * (rand() / 100 + 0.01)
+    # )
+    # cal_hospital_report <- mutate(cal_hospital_report,
+    #                               sales = cal_hospital_report$potential * (rand() / 100 + 0.015)
+    # )
 
     
     ## competitor product area
@@ -306,7 +306,7 @@ TMUCBCalProcess <- function(
                                    "growth_month_on_month", "growth_year_on_year",
                                    "sales_force_productivity", "return_on_investment"))
 
-    write.parquet(cal_hospital_report, paste0(output_dir, "hospital_report"))
+    # write.parquet(cal_hospital_report, paste0(output_dir, "hospital_report"))
     write.parquet(cal_product_area, paste0(output_dir, "competitor"))
     write.parquet(cal_result_summary, paste0(output_dir, "summary"))
     write.parquet(cal_data, paste0(output_dir, "cal_report"))
