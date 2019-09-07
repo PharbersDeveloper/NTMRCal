@@ -16,26 +16,26 @@
 # 11. 计算代表的销售达成
 
 # client模式调试引入
-# Sys.setenv(SPARK_HOME="/Users/cui/workFile/calc/spark-2.3.0-bin-hadoop2.7")
-# Sys.setenv(YARN_CONF_DIR="/Users/cui/workFile/calc/hadoop-3.0.3/etc/hadoop")
-# 
-# library(magrittr)
-# library(SparkR)
-# library(BPCalSession)
-# library(BPRDataLoading)
-# library(BPRSparkCalCommon)
-# library(uuid)
-# 
-# TMCalCurveSkeleton3 <- BPRSparkCalCommon::TMCalCurveSkeleton3
-# curve_func <- BPRSparkCalCommon::curve_func
-# 
-# source("./NTM/TMDataCbind.R", encoding = "UTF-8")
-# source("./NTM/TMCalColFuncs.R", encoding = "UTF-8")
+Sys.setenv(SPARK_HOME="/Users/cui/workFile/calc/spark-2.3.0-bin-hadoop2.7")
+Sys.setenv(YARN_CONF_DIR="/Users/cui/workFile/calc/hadoop-3.0.3/etc/hadoop")
+
+library(magrittr)
+library(SparkR, lib.loc = c(file.path(Sys.getenv("SPARK_HOME"), "R", "lib")))
+library(BPCalSession)
+library(BPRDataLoading)
+library(BPRSparkCalCommon)
+library(uuid)
+
+TMCalCurveSkeleton3 <- BPRSparkCalCommon::TMCalCurveSkeleton3
+curve_func <- BPRSparkCalCommon::curve_func
+
+source("./NTM/TMDataCbind.R", encoding = "UTF-8")
+source("./NTM/TMCalColFuncs.R", encoding = "UTF-8")
 
 # cluster模式引入
-source("TMDataCbind.R")
-source("TMCalColFuncs.R")
-source("TMCalResAchv.R")
+# source("TMDataCbind.R")
+# source("TMCalColFuncs.R")
+# source("TMCalResAchv.R")
 
 TMCalProcess <- function(
     cal_data_path, 
@@ -50,29 +50,29 @@ TMCalProcess <- function(
     projectid,
     periodid) {
 	output_dir <- paste0("hdfs://192.168.100.137:9000/tmtest0831/jobs/", jobid, "/output/")
-	
+	print(jobid)
 	# client模式获取spark session并读取文件
-    # ss <- BPCalSession::GetOrCreateSparkSession("TMCal", "client")
-    # cal_data <- BPRDataLoading::LoadDataFromParquent(cal_data_path)
-    # weightages <- BPRDataLoading::LoadDataFromParquent(weight_path)
-    # manager <- BPRDataLoading::LoadDataFromParquent(manage_path)
-    # competitor <- BPRDataLoading::LoadDataFromParquent(competitor_path)
-    # standard_time <- BPRDataLoading::LoadDataFromParquent(standard_time_path)
-    # level_data <- BPRDataLoading::LoadDataFromParquent(level_data_path)
-	# curves <- BPRDataLoading::LoadDataFromParquent(curves_path)
-    ss <- sparkR.session(appName = "TM-Submit")
-    cal_data <- read.parquet(cal_data_path)
-    weightages <- read.parquet(weight_path)
-    manager <- read.parquet(manage_path)
-    competitor <- read.parquet(competitor_path)
-    standard_time <- read.parquet(standard_time_path)
-    level_data <- read.parquet(level_data_path)
-    curves <- read.parquet(curves_path)
+    ss <- BPCalSession::GetOrCreateSparkSession("TMCal", "client")
+    cal_data <- BPRDataLoading::LoadDataFromParquent(cal_data_path)
+    weightages <- BPRDataLoading::LoadDataFromParquent(weight_path)
+    manager <- BPRDataLoading::LoadDataFromParquent(manage_path)
+    competitor <- BPRDataLoading::LoadDataFromParquent(competitor_path)
+    standard_time <- BPRDataLoading::LoadDataFromParquent(standard_time_path)
+    level_data <- BPRDataLoading::LoadDataFromParquent(level_data_path)
+	curves <- BPRDataLoading::LoadDataFromParquent(curves_path)
+    # ss <- sparkR.session(appName = "TM-Submit")
+    # cal_data <- read.parquet(cal_data_path)
+    # weightages <- read.parquet(weight_path)
+    # manager <- read.parquet(manage_path)
+    # competitor <- read.parquet(competitor_path)
+    # standard_time <- read.parquet(standard_time_path)
+    # level_data <- read.parquet(level_data_path)
+    # curves <- read.parquet(curves_path)
     
     
     curves <- CastCol2Double(curves, c("x", "y"))
     curves <- collect(curves)
-    
+
     cal_data <- TMDataCbind(cal_data, weightages, manager)
     
     cal_data <- mutate(cal_data, 
@@ -168,7 +168,6 @@ TMCalProcess <- function(
                        "work_motivation", "territory_management_ability", "sales_skills", 
                        "product_knowledge", "behavior_efficiency", "general_ability", "target", "target_coverage", 
                        "high_target", "middle_target", "low_target", "share", "sales")
-    cal_data_count <- count(cal_data)
     
     # write.df(cal_data, "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/output/abcde")
     # write.parquet(cal_data, "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/output/abcde-parquet")
@@ -327,27 +326,45 @@ TMCalProcess <- function(
                                  code = lit(5))
     
     assessment <- unionByName(particular_assessment, general_assessment)
-    
+    persist(assessment, "MEMORY_ONLY")
     #write.parquet(assessment, paste("hdfs://192.168.100.137:9000//test/TMTest/output", jobid, "Assessment", sep = "/"))
-    write.parquet(mutate(assessment,
+    
+    indexs <- list("general_performance", "resource_assigns", "region_division", "target_assigns", "manage_time", "manage_team")
+    assessment <- select(assessment, "index", "level")
+    
+    summary_data <- filter(assessment, assessment$index == "general_performance")
+    summary_data <- mutate(summary_data, 
+           general_performance = lit(head(summary_data, 1)[["level"]]),
+           resource_assigns = cal_summary_level(assessment, "resource_assigns"),
+           region_division = cal_summary_level(assessment, "region_division"),
+           target_assigns = cal_summary_level(assessment, "target_assigns"),
+           manage_time = cal_summary_level(assessment, "manage_time"),
+           manage_team = cal_summary_level(assessment, "manage_team")
+           )
+    
+    summary_data <- drop(summary_data, c("index", "level"))
+    
+    write.parquet(mutate(summary_data,
                          job_id = lit(jobid),
                          project_id = lit(projectid),
                          period_id = lit(periodid)), paste0(output_dir, "summary"))
     
     unpersist(cal_data_for_assessment, blocking = FALSE)
+    
+    unpersist(assessment, blocking = FALSE)
 }
 
 #测试程序
-#TMCalProcess(
-#    cal_data_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/cal_data",
-#    weight_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/weightages",
-#    manage_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/manager",
-#    curves_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/curves-n",
-#    competitor_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/competitor",
-#    standard_time_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/standard_time",
-#    level_data_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/level_data",
-#    jobid = uuid::UUIDgenerate(),
-#    uuid::UUIDgenerate(),
-#    uuid::UUIDgenerate(),
-#    uuid::UUIDgenerate()
-#)
+TMCalProcess(
+    cal_data_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/cal_data",
+    weight_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/weightages",
+    manage_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/manager",
+    curves_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/curves-n",
+    competitor_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/competitor",
+    standard_time_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/standard_time",
+    level_data_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/level_data",
+    jobid = uuid::UUIDgenerate(),
+    uuid::UUIDgenerate(),
+    uuid::UUIDgenerate(),
+    uuid::UUIDgenerate()
+)
