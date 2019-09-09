@@ -262,20 +262,6 @@ TMUCBCalProcess <- function(
 
     persist(cal_data, "MEMORY_ONLY")
     up_result <- cal_data
-
-    # ## competitor hospital report
-    # # cal_hospital_report <- ColRename(agg(groupBy(cal_data, "product"),
-    # #                                      potential="sum"),
-    # #                                  c("sum(potential)"),
-    # #                                  c("potential"))
-
-    # # cal_hospital_report <- mutate(cal_hospital_report,
-    # #                               potential = cal_hospital_report$potential * (rand() / 100 + 0.01)
-    # # )
-    # # cal_hospital_report <- mutate(cal_hospital_report,
-    # #                               sales = cal_hospital_report$potential * (rand() / 100 + 0.015)
-    # # )
-
     
     ## competitor product area
     group_by_ppa <- function(df) {
@@ -333,27 +319,29 @@ TMUCBCalProcess <- function(
                                  group_by_rs, 
                                  gb_rs_schema)
 
-    # cal_result_summary <- ColRename(agg(groupBy(cal_result_summary, "representative"),
-    #                                     p_sales ="sum",
-    #                                     pppp_sales ="sum",
-    #                                     sales ="sum",
-    #                                     quota ="sum",
-    #                                     account ="sum",
-    #                                     budget ="sum"),
-    #                                 c("sum(p_sales)", "sum(pppp_sales)", "sum(sales)", "sum(quota)", "sum(account)", "sum(budget)"),
-    #                                 c("p_sales", "pppp_sales", "sales", "quota", "new_account", "budget"))
+    cal_result_summary <- mutate(cal_result_summary, idx=lit(1L))
 
-    cal_result_summary <- ColRename(agg(cal_result_summary,
-                                        p_sales = "sum",
-                                        pppp_sales = "sum",
-                                        sales = "sum",
-                                        quota = "sum",
-                                        new_account = "sum",
-                                        budget = "sum",
-                                        representative = "count"),
-                                    c("sum(p_sales)", "sum(pppp_sales)", "sum(sales)", "sum(quota)", "sum(new_account)", "sum(budget)", "count(representative)"),
-                                    c("p_sales", "pppp_sales", "sales", "quota", "new_account", "budget", "rep_num"))
-
+    group_by_frt <- function(df) {
+        return(list(idx=df$idx))
+    }
+    
+    gb_frt_schema <- structType(
+        structField("idx", "int"),
+        structField("p_sales", "double"),
+        structField("pppp_sales", "double"),
+        structField("sales", "double"),
+        structField("quota", "double"),
+        structField("new_account", "double"),
+        structField("budget", "double"),
+        structField("rep_num", "int")
+    )   
+    
+    cal_result_summary <- TMAggSchema(cal_result_summary, 
+                                      c(list(name=c("p_sales", "pppp_sales", "sales", "quota", "new_account", "budget")), "sum",
+                                        list(name=c("representative")), "length"),
+                                      group_by_frt, 
+                                      gb_frt_schema)
+    
     cal_result_summary <- mutate(cal_result_summary,
                                  quota_achv = cal_result_summary$sales / cal_result_summary$quota,
                                  sales_force_productivity = cal_result_summary$sales / cal_result_summary$rep_num,
