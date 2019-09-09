@@ -19,11 +19,17 @@ phase <- cmd_args[6]
 
 ss <- sparkR.session(
     appName = "UCB-Submit",
-    sparkConfig = list(es.nodes.wan.only = TRUE,
-                       es.pushdown = TRUE,
-                       es.index.auto.create = TRUE,
-                       es.nodes = "pharbers.com",
-                       es.port = 9200L) 
+    sparkConfig = list(
+        spark.driver.memory = "1g",
+        spark.executor.memory = "1g",
+        spark.executor.cores = "1",
+        spark.executor.instances = "1",
+        spark.default.parallelism = 1L,
+        es.nodes.wan.only = TRUE,
+        es.pushdown = TRUE,
+        es.index.auto.create = TRUE,
+        es.nodes = "pharbers.com",
+        es.port = 9200L) 
     )
 job_scala_proxy <- sparkR.newJObject("com.pharbers.CallJMethod.BPTMProxy.TMProxy")
 tmpId <- sparkR.callJMethod(job_scala_proxy, "BPTMUCBPreCal", 
