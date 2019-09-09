@@ -56,30 +56,62 @@ TMUCBCalProcess <- function(
     persist(cal_data, "MEMORY_ONLY")
     up01 <- cal_data
     
-    cal_dist_data <-  ColRename(agg(groupBy(cal_data, "product", "representative", "city"),
-                                    potential_m="sum",
-                                    p_sales="sum",
-                                    hospital="count"),
-                                c("sum(potential_m)", "sum(p_sales)", "count(hospital)"),
-                                c("potential_dist", "sales_dist", "hospital_num_dist"))
+    group_by_prc <- function(df) {
+        return(list(product=df$product, representative=df$representative, city=df$city))
+    }
+    
+    gb_prc_schema <- structType(
+        structField("product", "string"),
+        structField("representative", "string"),
+        structField("city", "string"),
+        structField("potential_dist", "double"),
+        structField("sales_dist", "double"),
+        structField("hospital_num_dist", "int")
+    )
+    
+    cal_dist_data <- TMAggSchema(cal_data, 
+                                 c(list(name=c("potential_m", "p_sales")), "sum",
+                                   list(name=c("hospital")), "length"), 
+                                 group_by_prc, 
+                                 gb_prc_schema)
 
-    cal_dist_data <- CastCol2Double(
-        ColRename(agg(groupBy(cal_dist_data, "product", "representative"),
-                      potential_dist="sum",
-                      sales_dist="sum",
-                      hospital_num_dist="sum",
-                      city="count"),
-                  c("product", "representative", "sum(potential_dist)", "sum(sales_dist)", "count(city)", "sum(hospital_num_dist)"),
-                  c("product_mm", "representative_m", "potential_dist", "sales_dist", "city_num_dist", "hospital_num_dist")),
-        c("hospital_num_dist", "city_num_dist"))
+    group_by_pr <- function(df) {
+        return(list(product=df$product, representative=df$representative))
+    }
+    
+    gb_pr_schema <- structType(
+        structField("product_mm", "string"),
+        structField("representative_m", "string"),
+        structField("potential_dist", "double"),
+        structField("sales_dist", "double"),
+        structField("hospital_num_dist", "int"),
+        structField("city_num_dist", "int")
+    )
+    
+    cal_dist_data <- TMAggSchema(cal_dist_data, 
+                                 c(list(name=c("potential_dist", "sales_dist", "hospital_num_dist")), "sum",
+                                   list(name=c("city")), "length"), 
+                                 group_by_pr, 
+                                 gb_pr_schema)
+    
+    cal_dist_data <- CastCol2Double(cal_dist_data, c("hospital_num_dist", "city_num_dist"))
 
-    cal_market_data <- ColRename(agg(groupBy(cal_data, "product"),
-                                     potential="sum",
-                                     potential_m="sum",
-                                     p_sales="sum",
-                                     quota="sum"),
-                                 c("product", "sum(potential)", "sum(potential_m)", "sum(p_sales)", "sum(quota)"),
-                                 c("product_m", "sumptt", "sumpttm", "sumps", "sumqt"))
+    group_by_p <- function(df) {
+        return(list(product=df$product))
+    }
+    
+    gb_p_schema <- structType(
+        structField("product_m", "string"),
+        structField("sumptt", "double"),
+        structField("sumpttm", "double"),
+        structField("sumps", "double"),
+        structField("sumqt", "double")
+    )
+    
+    cal_market_data <- TMAggSchema(cal_data, 
+                                   c(list(name=c("potential", "potential_m", "p_sales", "quota")), "sum"),
+                                   group_by_p, 
+                                   gb_p_schema)
 
     cal_data <- join(cal_data, cal_market_data, cal_data$product == cal_market_data$product_m, "inner")
     cal_data <- join(cal_data, cal_dist_data, 
@@ -231,25 +263,37 @@ TMUCBCalProcess <- function(
     persist(cal_data, "MEMORY_ONLY")
     up_result <- cal_data
 
-    ## competitor hospital report
-    # cal_hospital_report <- ColRename(agg(groupBy(cal_data, "product"),
-    #                                      potential="sum"),
-    #                                  c("sum(potential)"),
-    #                                  c("potential"))
+    # ## competitor hospital report
+    # # cal_hospital_report <- ColRename(agg(groupBy(cal_data, "product"),
+    # #                                      potential="sum"),
+    # #                                  c("sum(potential)"),
+    # #                                  c("potential"))
 
-    # cal_hospital_report <- mutate(cal_hospital_report,
-    #                               potential = cal_hospital_report$potential * (rand() / 100 + 0.01)
-    # )
-    # cal_hospital_report <- mutate(cal_hospital_report,
-    #                               sales = cal_hospital_report$potential * (rand() / 100 + 0.015)
-    # )
+    # # cal_hospital_report <- mutate(cal_hospital_report,
+    # #                               potential = cal_hospital_report$potential * (rand() / 100 + 0.01)
+    # # )
+    # # cal_hospital_report <- mutate(cal_hospital_report,
+    # #                               sales = cal_hospital_report$potential * (rand() / 100 + 0.015)
+    # # )
 
     
     ## competitor product area
-    cal_product_area <- select(ColRename(agg(groupBy(cal_data, "product_area", "product"),
-                                             potential="sum"),
-                                         c("product_area", "sum(potential)"),
-                                         c("product_area_m", "potential")),
+    group_by_ppa <- function(df) {
+        return(list(product_area=df$product_area, product=df$product))
+    }
+    
+    gb_ppa_schema <- structType(
+        structField("product_area_m", "string"),
+        structField("product", "string"),
+        structField("potential", "double")
+    )
+    
+    cal_product_area <- TMAggSchema(cal_data, 
+                                   c(list(name=c("potential")), "sum"),
+                                   group_by_ppa, 
+                                   gb_ppa_schema)
+    
+    cal_product_area <- select(cal_product_area,
                                "product_area_m", "potential")
 
     competitor <- read.parquet(competitor_path)
@@ -267,17 +311,37 @@ TMUCBCalProcess <- function(
                                period_id = lit(periodid)
     )
 
-    # # final summary report 单周期
+    ## final summary report 单周期
     cal_result_summary <- select(cal_data, "representative", "status", "p_sales", "pppp_sales", "sales", "quota", "budget", "account")
-    cal_result_summary <- ColRename(agg(groupBy(cal_result_summary, "representative"),
-                                        p_sales ="sum",
-                                        pppp_sales ="sum",
-                                        sales ="sum",
-                                        quota ="sum",
-                                        account ="sum",
-                                        budget ="sum"),
-                                    c("sum(p_sales)", "sum(pppp_sales)", "sum(sales)", "sum(quota)", "sum(account)", "sum(budget)"),
-                                    c("p_sales", "pppp_sales", "sales", "quota", "new_account", "budget"))
+
+    group_by_rs <- function(df) {
+        return(list(representative=df$representative))
+    }
+    
+    gb_rs_schema <- structType(
+        structField("representative", "string"),
+        structField("p_sales", "double"),
+        structField("pppp_sales", "double"),
+        structField("sales", "double"),
+        structField("quota", "double"),
+        structField("new_account", "double"),
+        structField("budget", "double")
+    )
+    
+    cal_result_summary <- TMAggSchema(cal_result_summary, 
+                                 c(list(name=c("p_sales", "pppp_sales", "sales", "quota", "account", "budget")), "sum"),
+                                 group_by_rs, 
+                                 gb_rs_schema)
+
+    # cal_result_summary <- ColRename(agg(groupBy(cal_result_summary, "representative"),
+    #                                     p_sales ="sum",
+    #                                     pppp_sales ="sum",
+    #                                     sales ="sum",
+    #                                     quota ="sum",
+    #                                     account ="sum",
+    #                                     budget ="sum"),
+    #                                 c("sum(p_sales)", "sum(pppp_sales)", "sum(sales)", "sum(quota)", "sum(account)", "sum(budget)"),
+    #                                 c("p_sales", "pppp_sales", "sales", "quota", "new_account", "budget"))
 
     cal_result_summary <- ColRename(agg(cal_result_summary,
                                         p_sales = "sum",
@@ -306,7 +370,7 @@ TMUCBCalProcess <- function(
                                    "growth_month_on_month", "growth_year_on_year",
                                    "sales_force_productivity", "return_on_investment"))
 
-    # write.parquet(cal_hospital_report, paste0(output_dir, "hospital_report"))
+    # # write.parquet(cal_hospital_report, paste0(output_dir, "hospital_report"))
     write.parquet(cal_product_area, paste0(output_dir, "competitor"))
     write.parquet(cal_result_summary, paste0(output_dir, "summary"))
     write.parquet(cal_data, paste0(output_dir, "cal_report"))

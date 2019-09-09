@@ -7,6 +7,7 @@ library(RKafkaProxy)
 
 TMCalCurveSkeleton3 <- BPRSparkCalCommon::TMCalCurveSkeleton3
 curve_func <- BPRSparkCalCommon::curve_func
+TMAggSchema <- BPRSparkCalCommon::TMAggSchema
 
 cmd_args = commandArgs(T)
 
