@@ -24,7 +24,7 @@ cal_value_contri <-function(df) {
 
 cal_hospital_quota_base <- function(df) {
     ifelse(df$status == "已开发",
-            df$p_sales * 0.4 / df$sumps + df$potential * 0.6,
+            df$p_sales * 0.4 / df$sumps + df$potential * 0.6 / df$sumptt,
             df$potential / df$sumptt)
 }
 
