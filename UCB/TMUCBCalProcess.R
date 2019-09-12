@@ -195,7 +195,7 @@ TMUCBCalProcess <- function(
     # market share
     cal_developed_data <- TMCalCurveSkeleton2(cal_developed_data, curves,
                                               c(
-                                                  "curve01:curve05", "market_share", "offer_attractiveness_adj", "status$已开发:未开发"
+                                                  "curve01:curve05", "market_share", "offer_attractiveness_adj", "status$已开发:正在开发"
                                               ), TMCalValue2String)
 
     cal_developed_data <- mutate(cal_developed_data,
