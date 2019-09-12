@@ -129,7 +129,13 @@ TMUCBCalProcess <- function(
                        budget_factor = cal_data$budget_prop / cal_data$value_contri
     )
     
-    cal_data <- mutate(cal_data, ColRename(select(cal_data, sum(cal_data$budget)), c("sum(budget)"), c("total_budget")))
+    cal_calc_data <- head(ColRename(select(cal_data,
+                                       sum(cal_data$budget)),
+                                c("sum(budget)"),
+                                c("total_budget")), 1)
+
+    cal_data <- mutate(cal_data,
+                   total_budget = lit(cal_calc_data$total_budget))
     
     persist(cal_data, "MEMORY_ONLY")
     up02 <- cal_data
