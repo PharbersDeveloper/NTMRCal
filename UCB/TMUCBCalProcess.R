@@ -70,7 +70,7 @@ TMUCBCalProcess <- function(
     )
     
     cal_dist_data <- TMAggSchema(cal_data, 
-                                 c(list(name=c("potential_m", "p_sales")), "sum",
+                                 c(list(name=c("potential", "p_sales")), "sum",
                                    list(name=c("hospital")), "length"), 
                                  group_by_prc, 
                                  gb_prc_schema)
