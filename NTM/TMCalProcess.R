@@ -132,7 +132,7 @@ TMCalProcess <- function(
                        share = cal_data$p_share * (cal_data$share_delta_factor + 1))
     #result for assessment
     cal_data_for_assessment <- mutate(cal_data, 
-                       sales = cal_data$potential / cal_data$share * 4)
+                       sales = cal_data$potential / 4 * cal_data$share)
     
     persist(cal_data_for_assessment, "MEMORY_ONLY")
     
