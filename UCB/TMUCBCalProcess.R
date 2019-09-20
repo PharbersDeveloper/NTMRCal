@@ -278,7 +278,7 @@ TMUCBCalProcess <- function(
     
     ## competitor product area
     group_by_ppa <- function(df) {
-        return(list(product_area=df$product_area, product=df$product))
+        return(list(product_area=df$product_area))
     }
     
     gb_ppa_schema <- structType(
