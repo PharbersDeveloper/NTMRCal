@@ -293,7 +293,7 @@ TMUCBCalProcess <- function(
                                    gb_ppa_schema)
     
     cal_product_area <- select(cal_product_area, "product_area_m", "potential")
-    distinct(cal_product_area)
+    cal_product_area <- distinct(cal_product_area)
 
     competitor <- read.parquet(competitor_path)
     competitor <- CastCol2Double(competitor, c("market_share_c"))
