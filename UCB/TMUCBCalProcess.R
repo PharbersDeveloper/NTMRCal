@@ -283,7 +283,6 @@ TMUCBCalProcess <- function(
     
     gb_ppa_schema <- structType(
         structField("product_area_m", "string"),
-        structField("product", "string"),
         structField("potential", "double")
     )
     
