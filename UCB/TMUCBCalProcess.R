@@ -210,8 +210,7 @@ TMUCBCalProcess <- function(
                                  ytd_sales = cal_developed_data$p_ytd_sales + cal_developed_data$sales
     )
     
-    cal_developed_data <- mutate(cal_developed_data,
-                                 status = "已开发")
+    cal_developed_data <- mutate(cal_developed_data, status = lit("已开发"))
 
     cal_developed_data <- ColRename(select(cal_developed_data,
                                            c("city", "hospital", "hospital_level", "representative", "product", "product_area", "potential",
