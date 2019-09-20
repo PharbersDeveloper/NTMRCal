@@ -278,11 +278,12 @@ TMUCBCalProcess <- function(
     
     ## competitor product area
     group_by_ppa <- function(df) {
-        return(list(product_area=df$product_area))
+        return(list(product_area=df$product_area, product=df$product))
     }
     
     gb_ppa_schema <- structType(
         structField("product_area_m", "string"),
+        structField("product", "string"),
         structField("potential", "double")
     )
     
@@ -291,8 +292,8 @@ TMUCBCalProcess <- function(
                                    group_by_ppa, 
                                    gb_ppa_schema)
     
-    cal_product_area <- select(cal_product_area,
-                               "product_area_m", "potential")
+    cal_product_area <- select(cal_product_area, "product_area_m", "potential")
+    distinct(cal_product_area)
 
     competitor <- read.parquet(competitor_path)
     competitor <- CastCol2Double(competitor, c("market_share_c"))
