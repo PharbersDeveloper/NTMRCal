@@ -287,7 +287,8 @@ TMUCBCalProcess <- function(
         structField("potential", "double")
     )
     
-    cal_product_area <- TMAggSchema(cal_data, 
+    cal_product_area <- repartition(cal_data, numPartitions = 1L)
+    cal_product_area <- TMAggSchema(cal_product_area, 
                                    c(list(name=c("potential")), "sum"),
                                    group_by_ppa, 
                                    gb_ppa_schema)
