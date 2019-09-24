@@ -359,7 +359,7 @@ TMUCBCalProcess <- function(
     cal_result_summary <- mutate(cal_result_summary,
                                  quota_achv = cal_result_summary$sales / cal_result_summary$quota,
                                  sales_force_productivity = cal_result_summary$sales / cal_result_summary$rep_num,
-                                 return_on_investment = cal_result_summary$sales / cal_result_summary$budget,
+                                 return_on_investment = ifelse(cal_result_summary$budget == 0, 0, cal_result_summary$sales / cal_result_summary$budget),
                                  growth_month_on_month = cal_result_summary$sales / cal_result_summary$p_sales - 1.0,
                                  growth_year_on_year = cal_result_summary$sales / cal_result_summary$pppp_sales - 1.0,
                                  job_id = lit(jobid),
