@@ -273,6 +273,7 @@ TMUCBCalProcess <- function(
     cal_data <- mutate(cal_data,
                        next_budget = cal_next_budget(cal_data))
 
+    cal_data <- repartition(cal_data, numPartitions = 1L)
     persist(cal_data, "MEMORY_ONLY")
     up_result <- cal_data
     
@@ -327,7 +328,9 @@ TMUCBCalProcess <- function(
         structField("new_account", "double"),
         structField("budget", "double")
     )
-    
+   
+    #cal_result_summary <- repo 
+    cal_product_area <- repartition(cal_data, numPartitions = 1L)
     cal_result_summary <- TMAggSchema(cal_result_summary, 
                                  c(list(name=c("p_sales", "pppp_sales", "sales", "quota", "account", "budget")), "sum"),
                                  group_by_rs, 
