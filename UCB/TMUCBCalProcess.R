@@ -329,7 +329,6 @@ TMUCBCalProcess <- function(
         structField("budget", "double")
     )
    
-    #cal_result_summary <- repo 
     cal_result_summary <- repartition(cal_result_summary, numPartitions = 1L)
     cal_result_summary <- TMAggSchema(cal_result_summary, 
                                  c(list(name=c("p_sales", "pppp_sales", "sales", "quota", "account", "budget")), "sum"),
