@@ -244,7 +244,11 @@ TMUCBCalProcess <- function(
     cal_data <- filter(cal_data, isNotNull(cal_data$status))
     cal_data <- mutate(cal_data,
                        account = ifelse(cal_data$status == "正在开发", 1, 0),
-                       quota_achv = ifelse(cal_data$quota > 0, cal_data$sales / cal_data$quota, 0)
+                       quota_achv = ifelse(cal_data$quota > 0,
+                                           cal_data$sales / cal_data$quota,
+                                           ifelse(cal_data$sales > 0,
+                                                  1.0,
+                                                  0.0))
     )
 
     persist(cal_data, "MEMORY_ONLY")
@@ -359,11 +363,25 @@ TMUCBCalProcess <- function(
                                       gb_frt_schema)
     
     cal_result_summary <- mutate(cal_result_summary,
-                                 quota_achv = cal_result_summary$sales / cal_result_summary$quota,
+                                 quota_achv = ifelse(cal_result_summary$quota > 0,
+                                                     cal_result_summary$sales / cal_result_summary$quota,
+                                                     ifelse(cal_result_summary$sales > 0,
+                                                            1.0,
+                                                            0.0)),
                                  sales_force_productivity = cal_result_summary$sales / cal_result_summary$rep_num,
-                                 return_on_investment = ifelse(cal_result_summary$budget == 0, 0, cal_result_summary$sales / cal_result_summary$budget),
-                                 growth_month_on_month = cal_result_summary$sales / cal_result_summary$p_sales - 1.0,
-                                 growth_year_on_year = cal_result_summary$sales / cal_result_summary$pppp_sales - 1.0,
+                                 return_on_investment = ifelse(cal_result_summary$budget > 0,
+                                                               cal_result_summary$sales / cal_result_summary$budget,
+                                                               0),
+                                 growth_month_on_month = ifelse(cal_result_summary$p_sales > 0,
+                                                                cal_result_summary$sales / cal_result_summary$p_sales - 1.0,
+                                                                ifelse(cal_result_summary$sales > 0,
+                                                                       1.0,
+                                                                       0.0)),
+                                 growth_year_on_year = ifelse(cal_result_summary$pppp_sales > 0,
+                                                              cal_result_summary$sales / cal_result_summary$pppp_sales - 1.0,
+                                                              ifelse(cal_result_summary$sales > 0,
+                                                                     1.0,
+                                                                     0.0)),
                                  job_id = lit(jobid),
                                  project_id = lit(projectid),
                                  period_id = lit(periodid)
