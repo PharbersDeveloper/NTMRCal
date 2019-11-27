@@ -150,3 +150,7 @@ cal_assessment_level <- function(df) {
     ifelse(df$score < df$level1, 1, 
            ifelse(df$score > df$level2, 3, 2))
 }
+
+cal_summary_level <- function(df, index) {
+    lit(head(filter(df, df$index == index), 1)[["level"]])
+}
