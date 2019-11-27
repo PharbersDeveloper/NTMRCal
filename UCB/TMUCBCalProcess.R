@@ -30,7 +30,7 @@ TMUCBCalProcess <- function(
     projectid,
     periodid) {
 
-    output_dir <- paste0("hdfs://192.168.100.137:9000/tmtest0831/jobs/", jobid, "/output/")
+    output_dir <- paste0("hdfs://192.168.100.137:8020/tmtest0831/jobs/", jobid, "/output/")
     #jobid <- uuid::UUIDgenerate()
     # ss <- sparkR.session(appName = "UCB-Submit")
     cal_data <- read.parquet(cal_data_path)
