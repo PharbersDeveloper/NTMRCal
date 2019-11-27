@@ -49,7 +49,7 @@ TMCalProcess <- function(
     proposalid,
     projectid,
     periodid) {
-	output_dir <- paste0("hdfs://192.168.100.137:9000/tmtest0831/jobs/", jobid, "/output/")
+	output_dir <- paste0("hdfs://192.168.100.137:8020/tmtest0831/jobs/", jobid, "/output/")
 	print(jobid)
 	# client模式获取spark session并读取文件
     # ss <- BPCalSession::GetOrCreateSparkSession("TMCal", "client")
@@ -169,9 +169,9 @@ TMCalProcess <- function(
                        "product_knowledge", "behavior_efficiency", "general_ability", "target", "target_coverage", 
                        "high_target", "middle_target", "low_target", "share", "sales")
     
-    # write.df(cal_data, "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/output/abcde")
-    # write.parquet(cal_data, "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/output/abcde-parquet")
-    #write.parquet(cal_data, paste("hdfs://192.168.100.137:9000//test/TMTest/output", jobid, "TMResult", sep = "/"))
+    # write.df(cal_data, "hdfs://192.168.100.137:8020//test/TMTest/inputParquet/TMInputParquet0815/output/abcde")
+    # write.parquet(cal_data, "hdfs://192.168.100.137:8020//test/TMTest/inputParquet/TMInputParquet0815/output/abcde-parquet")
+    #write.parquet(cal_data, paste("hdfs://192.168.100.137:8020//test/TMTest/output", jobid, "TMResult", sep = "/"))
     write.parquet(mutate(cal_data,
         job_id = lit(jobid),
         project_id = lit(projectid),
@@ -193,7 +193,7 @@ TMCalProcess <- function(
     
     competitor_data <- select(competitor_data, "product", "sales", "share", "sales_growth")
     
-    #write.parquet(competitor_data, paste("hdfs://192.168.100.137:9000//test/TMTest/output", jobid, "TMCompetitor", sep = "/"))
+    #write.parquet(competitor_data, paste("hdfs://192.168.100.137:8020//test/TMTest/output", jobid, "TMCompetitor", sep = "/"))
     write.parquet(mutate(competitor_data, 
                          job_id = lit(jobid),
                          project_id = lit(projectid),
@@ -327,7 +327,7 @@ TMCalProcess <- function(
     
     assessment <- unionByName(particular_assessment, general_assessment)
     persist(assessment, "MEMORY_ONLY")
-    #write.parquet(assessment, paste("hdfs://192.168.100.137:9000//test/TMTest/output", jobid, "Assessment", sep = "/"))
+    #write.parquet(assessment, paste("hdfs://192.168.100.137:8020//test/TMTest/output", jobid, "Assessment", sep = "/"))
     
     indexs <- list("general_performance", "resource_assigns", "region_division", "target_assigns", "manage_time", "manage_team")
     assessment <- select(assessment, "index", "level")
@@ -356,13 +356,13 @@ TMCalProcess <- function(
 
 #测试程序
 # TMCalProcess(
-#     cal_data_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/cal_data",
-#     weight_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/weightages",
-#     manage_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/manager",
-#     curves_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/curves-n",
-#     competitor_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/competitor",
-#     standard_time_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/standard_time",
-#     level_data_path = "hdfs://192.168.100.137:9000//test/TMTest/inputParquet/TMInputParquet0815/level_data",
+#     cal_data_path = "hdfs://192.168.100.137:8020//test/TMTest/inputParquet/TMInputParquet0815/cal_data",
+#     weight_path = "hdfs://192.168.100.137:8020//test/TMTest/inputParquet/TMInputParquet0815/weightages",
+#     manage_path = "hdfs://192.168.100.137:8020//test/TMTest/inputParquet/TMInputParquet0815/manager",
+#     curves_path = "hdfs://192.168.100.137:8020//test/TMTest/inputParquet/TMInputParquet0815/curves-n",
+#     competitor_path = "hdfs://192.168.100.137:8020//test/TMTest/inputParquet/TMInputParquet0815/competitor",
+#     standard_time_path = "hdfs://192.168.100.137:8020//test/TMTest/inputParquet/TMInputParquet0815/standard_time",
+#     level_data_path = "hdfs://192.168.100.137:8020//test/TMTest/inputParquet/TMInputParquet0815/level_data",
 #     jobid = uuid::UUIDgenerate(),
 #     uuid::UUIDgenerate(),
 #     uuid::UUIDgenerate(),
