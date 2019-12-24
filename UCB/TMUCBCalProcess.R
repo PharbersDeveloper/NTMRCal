@@ -178,7 +178,7 @@ TMUCBCalProcess <- function(
 
     cal_developed_data <- TMCalCurveSkeleton2(cal_developed_data, curves,
                                               c(
-                                                  "curve02:curve03:curve03", "oa_factor_base", "budget_factor", "product$开拓来:威芃可:优派西",
+                                                  "curve02:curve03:curve03", "oa_factor_base", "budget_factor", "product$开浦兰:维派特:优普洛",
                                                   "curve09", "p_offer_attractiveness", "p_oa_factor", "None"
                                               ), TMCalValue2String)
 

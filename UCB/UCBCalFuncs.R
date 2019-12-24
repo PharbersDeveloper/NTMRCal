@@ -1,5 +1,5 @@
 cal_total_budget <- function(df) {
-    ifelse(df$product == "开拓来", df$initial_budget * 0.6, df$initial_budget * 0.12)
+    ifelse(df$product == "开浦兰", df$initial_budget * 0.6, df$initial_budget * 0.12)
 }
 
 cal_update_protential <- function(df) {
@@ -7,15 +7,15 @@ cal_update_protential <- function(df) {
 }
 
 cal_potential_factor <- function(df) {
-    ifelse(df$product == "开拓来", 0.8, 1.0)
+    ifelse(df$product == "开浦兰", 0.8, 1.0)
 }
 
 cal_sales_factor <- function(df) {
-    ifelse(df$product == "开拓来", 0.2, 0.0)
+    ifelse(df$product == "开浦兰", 0.2, 0.0)
 }
 
 cal_mac_oa <- function(df) {
-    ifelse(df$product == "开拓来", 100.0, 40.0)
+    ifelse(df$product == "开浦兰", 100.0, 40.0)
 }
 
 cal_value_contri <-function(df) {
